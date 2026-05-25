@@ -23,8 +23,8 @@ env/
 Thumbs.db
 
 # Local run reports
-reports/
+# reports/
 
 # Playwright binaries & screenshots
 playwright-browsers/
-screenshots/
+# screenshots/
