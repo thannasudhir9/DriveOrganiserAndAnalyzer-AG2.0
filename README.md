@@ -1,7 +1,7 @@
 # 🚀 Nova Disk Space Analyzer
 
-> **Last Updated**: May 24, 2026, 9:00 PM (Local Time: 2026-05-24T21:00:00+02:00)
-> **Branch**: master / local
+> **Last Updated**: May 25, 2026, 10:15 AM (Local Time: 2026-05-25T10:15:00+02:00)
+> **Branch**: `main` (synchronized with remote GitHub repository)
 
 Nova Disk Space Analyzer is a highly responsive, locally run web application that traverses your hard drives and projects, visualizing directory sizes using interactive **squarified SVG treemaps** (WinDirStat-style), listing candidate duplicate files, grouping file extensions, and exposing an advanced space-hog search tool.
 
