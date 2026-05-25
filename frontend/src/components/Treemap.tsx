@@ -255,8 +255,8 @@ export const Treemap: React.FC<TreemapProps> = ({
                 <File size={18} style={{ color: 'var(--neon-cyan)', flexShrink: 0 }} />
               )}
               <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{hoveredNode.name}</span>
-                <span style={{ fontSize: '0.75rem', color: '#64748b', marginLeft: '0.5rem', display: 'block' }}>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#ffffff' }}>{hoveredNode.name}</span>
+                <span style={{ fontSize: '0.75rem', color: '#a0aec0', marginLeft: '0.5rem', display: 'block' }}>
                   {hoveredNode.path}
                 </span>
               </div>

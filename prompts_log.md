@@ -452,7 +452,26 @@ update all the documents with date and time and push the code to repo
 - **Future Scope Roadmap**: Authored a premium `future_scope.md` project guide detailing Rust filesystem traversal bindings, low-level Win32/POSIX system calls, content-based cryptographic file hashing deduplications, AI/NLP-based sorting classifiers, dynamic UAC/sudo permission elevators, and long-path prefixes handlers.
 - **Flawless Production Build**: Cleaned unused `theme` property destructuring inside `Dashboard.tsx` to pass Vite production compilations cleanly without any warnings in 359ms.
 - **Uniform Timestamps & Git Push**: Updated all documents, tasks, READMEs, and logs with timestamp `May 25, 2026, 11:10 AM` and pushed all codebase modifications cleanly to the remote GitHub repository.
+---
 
+## 📅 Prompt 15: Home Navigation Shortcut, Shutter Animation, Screenshot Error HUD, and Light Theme Treemap Contrast Polish
 
+### ⏰ Timestamp: `2026-05-25T18:15:00+02:00`
 
+### 💬 Input Command:
+```
+add a home to navigate to home page , all the places in any time , even during scan or viewing analysis report, also I should be able to come back to analysis report to see it if I went to home page
+in analysis report the folder content names are being not displayed in light theme fix it
 
+screenshot button , how do I understand it is working or not, as I dont see anything happening when I click it
+```
+
+### 🎯 Key Outcomes:
+- **Home Navigation Shortcut**: Updated `App.tsx` and the main header bar to include a globally accessible "Home" button allowing instantaneous redirection back to the startup screen from any viewport at any time, even during active background disk scans or when reviewing analysis reports.
+- **Scan & Report Recovery Badges**: Integrated glowing, pulsing sticky buttons inside the header bar when browsing the Home page. If a filesystem scan is active in the background, a "Return to Active Scan" badge appears; if a completed report is loaded, a "Return to Report" badge is shown, enabling instant navigation back and forth.
+- **Visual Camera Shutter Flash**: Added a gorgeous visual camera shutter flash micro-animation (briefly fading a full-screen white overlay using pure CSS `@keyframes camera-flash` transitions) that triggers immediately when the Screenshot button is clicked, providing instant user feedback.
+- **Interactive Screenshot Alerts**: Wired slide-in error banner alerts at the top of the app to display descriptive failure explanations in case local system port collisions or Chromium headless crashes occur.
+- **Light Theme Treemap Contrast Polish**: Fixed a bug where folder/file names inside the visual space treemap nodes were filled with almost black text (`#0f172a`), making them unreadable against dark indigo/purple/rose node rects in Light Theme. The text fill has been forced to a premium high-contrast white with dark drop shadows in both themes.
+- **Hover Details Overlay Contrast**: Corrected hovered node card descriptions in the Treemap view which had hardcoded dark backgrounds but no text colors, ensuring they display in crisp high-contrast white in both dark and light modes.
+- **Header Button Visual Contrast**: Modified the circular Home, Camera, and Theme header buttons in `App.tsx` to use theme-aware custom properties (`var(--btn-secondary-bg)`, `var(--btn-secondary-border)`, `color: 'var(--text-primary)'`), ensuring perfect premium definition and visibility in Light Theme.
+- **Clean Compilation & ASGI Relaunch**: Verified that all updates compile flawlessly in 480ms via `npm run build` and restarted the FastAPI ASGI local web server backend on port 8000.

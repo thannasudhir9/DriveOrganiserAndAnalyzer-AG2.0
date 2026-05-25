@@ -102,7 +102,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
                           style={{ 
                             fontWeight: 500, 
                             cursor: item.is_dir ? 'pointer' : 'default',
-                            color: item.is_dir ? 'white' : '#cbd5e1',
+                            color: item.is_dir ? 'var(--text-primary)' : 'var(--text-secondary)',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
@@ -116,7 +116,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
                           }}
                           onMouseLeave={(e) => {
                             if (item.is_dir) {
-                              e.currentTarget.style.color = 'white';
+                              e.currentTarget.style.color = 'var(--text-primary)';
                               e.currentTarget.style.textDecoration = 'none';
                             }
                           }}
@@ -139,7 +139,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({
                             }} 
                           />
                         </div>
-                        <span style={{ fontSize: '0.75rem', color: '#94a3b8', width: '38px', textAlign: 'right', fontWeight: 600 }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', width: '38px', textAlign: 'right', fontWeight: 600 }}>
                           {percentOfParent.toFixed(1)}%
                         </span>
                       </div>

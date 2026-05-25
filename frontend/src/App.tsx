@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShieldAlert, RefreshCw, XCircle, HardDrive, Cpu, Circle, Database, Layers, Sun, Moon, Pause, Play, FileText, CheckCircle2, Sparkles, FolderSync, Camera } from 'lucide-react';
+import { ShieldAlert, RefreshCw, XCircle, HardDrive, Cpu, Circle, Database, Layers, Sun, Moon, Pause, Play, FileText, CheckCircle2, Sparkles, FolderSync, Camera, Home } from 'lucide-react';
 import { DiskSelector, API_BASE, formatBytes } from './components/DiskSelector';
 import { Dashboard } from './components/Dashboard';
 import { ScanStatus, ScanSummary, DirectoryContent } from './types';
@@ -15,6 +15,7 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'explorer' | 'search' | 'duplicates' | 'analytics' | 'optimizer' | 'organizer' | 'docs' | 'features'>('explorer');
   const [screenshotting, setScreenshotting] = useState<boolean>(false);
   const [screenshotNotice, setScreenshotNotice] = useState<string | null>(null);
+  const [flash, setFlash] = useState<boolean>(false);
   
   // Progress & results
   const [progress, setProgress] = useState<ScanStatus | null>(null);
@@ -110,8 +111,13 @@ export const App: React.FC = () => {
   }, []);
 
   const takeScreenshot = async () => {
+    // Trigger premium camera shutter flash effect instantly!
+    setFlash(true);
+    setTimeout(() => setFlash(false), 500);
+
     setScreenshotting(true);
     setScreenshotNotice(null);
+    setErrorMsg(null);
     try {
       const res = await fetch(`${API_BASE}/api/screenshot`, {
         method: 'POST',
@@ -128,16 +134,16 @@ export const App: React.FC = () => {
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
-          setScreenshotNotice(`Screenshot captured successfully as /screenshots/${data.filename}!`);
+          setScreenshotNotice(`📸 Screenshot captured successfully as /screenshots/${data.filename}!`);
           setTimeout(() => setScreenshotNotice(null), 6000);
         } else {
-          console.error("Screenshot capture failed:", data);
+          setErrorMsg(`Screenshot failed: ${data.error || 'Unknown error'}`);
         }
       } else {
-        console.error("Failed to call screenshot API:", res.statusText);
+        setErrorMsg(`Failed to call screenshot API: ${res.statusText} (Status ${res.status}). Make sure the backend server is active and restart it if needed.`);
       }
-    } catch (err) {
-      console.error("Error capturing screenshot:", err);
+    } catch (err: any) {
+      setErrorMsg(`Error capturing screenshot: ${err.message || err}`);
     } finally {
       setScreenshotting(false);
     }
@@ -375,6 +381,9 @@ export const App: React.FC = () => {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       
+      {/* Premium camera flash overlay */}
+      {flash && <div className="camera-flash-overlay" />}
+      
       {/* Header bar */}
       <header className="app-header" style={{ padding: '1rem 2rem', background: theme === 'dark' ? 'rgba(9, 14, 30, 0.4)' : 'rgba(255, 255, 255, 0.4)', backdropFilter: 'blur(10px)' }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -415,13 +424,55 @@ export const App: React.FC = () => {
               </div>
             )}
             
-            {/* Take Screenshot Button */}
+            {/* sticky Return to Active Scan button in header */}
+            {progress && (progress.status === 'scanning' || progress.status === 'paused') && viewState === 'selector' && (
+              <button
+                onClick={() => setViewState('dashboard')}
+                className="btn-danger animate-pulse-neon"
+                style={{
+                  padding: '0.45rem 1rem',
+                  fontSize: '0.8rem',
+                  borderRadius: '20px',
+                  background: 'rgba(244, 63, 94, 0.1)',
+                  borderColor: 'var(--neon-rose)',
+                  color: 'var(--neon-rose)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  height: '32px'
+                }}
+              >
+                <RefreshCw size={12} className="animate-spin-neon" /> Active Scan &rarr;
+              </button>
+            )}
+
+            {/* sticky Return to Completed Report button in header */}
+            {summary && !(progress && (progress.status === 'scanning' || progress.status === 'paused')) && viewState === 'selector' && (
+              <button
+                onClick={() => setViewState('dashboard')}
+                className="btn-primary animate-pulse-neon"
+                style={{
+                  padding: '0.45rem 1rem',
+                  fontSize: '0.8rem',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  height: '32px'
+                }}
+              >
+                <Layers size={12} /> Return to Report &rarr;
+              </button>
+            )}
+
+            {/* Home Navigation Button */}
             <button
-               onClick={takeScreenshot}
-               disabled={screenshotting}
+               onClick={() => setViewState('selector')}
                style={{
-                 background: 'rgba(255, 255, 255, 0.04)',
-                 border: '1px solid rgba(255, 255, 255, 0.08)',
+                 background: 'var(--btn-secondary-bg)',
+                 border: '1px solid var(--btn-secondary-border)',
                  borderRadius: '50%',
                  width: '32px',
                  height: '32px',
@@ -429,12 +480,36 @@ export const App: React.FC = () => {
                  alignItems: 'center',
                  justifyContent: 'center',
                  cursor: 'pointer',
-                 color: 'white',
+                 color: 'var(--text-primary)',
+                 transition: 'var(--transition-smooth)'
+               }}
+               onMouseEnter={(e) => e.currentTarget.style.background = 'var(--btn-secondary-hover-bg)'}
+               onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
+               title="Go to Home Selector Screen"
+             >
+               <Home size={14} style={{ color: 'var(--neon-indigo)' }} />
+             </button>
+
+            {/* Take Screenshot Button */}
+            <button
+               onClick={takeScreenshot}
+               disabled={screenshotting}
+               style={{
+                 background: 'var(--btn-secondary-bg)',
+                 border: '1px solid var(--btn-secondary-border)',
+                 borderRadius: '50%',
+                 width: '32px',
+                 height: '32px',
+                 display: 'flex',
+                 alignItems: 'center',
+                 justifyContent: 'center',
+                 cursor: 'pointer',
+                 color: 'var(--text-primary)',
                  transition: 'var(--transition-smooth)',
                  opacity: screenshotting ? 0.6 : 1
                }}
-               onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'}
-               onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)'}
+               onMouseEnter={(e) => e.currentTarget.style.background = 'var(--btn-secondary-hover-bg)'}
+               onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
                title="Take Screenshot of Current View"
              >
                {screenshotting ? (
@@ -448,8 +523,8 @@ export const App: React.FC = () => {
             <button
               onClick={toggleTheme}
               style={{
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: 'var(--btn-secondary-bg)',
+                border: '1px solid var(--btn-secondary-border)',
                 borderRadius: '50%',
                 width: '32px',
                 height: '32px',
@@ -457,11 +532,11 @@ export const App: React.FC = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                color: 'white',
+                color: 'var(--text-primary)',
                 transition: 'var(--transition-smooth)'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)'}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'var(--btn-secondary-hover-bg)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
               title={theme === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
             >
               {theme === 'dark' ? <Sun size={14} style={{ color: 'var(--neon-cyan)' }} /> : <Moon size={14} style={{ color: 'var(--neon-indigo)' }} />}
@@ -535,6 +610,81 @@ export const App: React.FC = () => {
         {/* View 1: Selector */}
         {viewState === 'selector' && (
           <div style={{ maxWidth: '1000px', margin: '1rem auto', padding: '0 1rem' }} className="animate-fade-in">
+            {/* Active Analysis/Scanning recovery banners */}
+            {summary && (
+              <div 
+                className="glass-panel animate-pulse-neon" 
+                style={{ 
+                  padding: '1rem 1.25rem', 
+                  borderColor: 'var(--neon-cyan)', 
+                  background: 'var(--hud-bg)',
+                  borderRadius: '10px',
+                  marginBottom: '1.5rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '0.75rem'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <Layers size={18} style={{ color: 'var(--neon-cyan)' }} />
+                  <div>
+                    <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem', marginRight: '0.4rem' }}>
+                      Active Analysis Loaded:
+                    </span>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                      Currently analyzing <code style={{ color: 'var(--neon-cyan)', fontFamily: 'monospace' }}>{summary.root_path}</code>.
+                    </span>
+                  </div>
+                </div>
+                <button 
+                  className="btn-primary" 
+                  onClick={() => setViewState('dashboard')}
+                  style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', cursor: 'pointer' }}
+                >
+                  Resume View Analysis Report &rarr;
+                </button>
+              </div>
+            )}
+
+            {!summary && progress && (progress.status === 'scanning' || progress.status === 'paused') && (
+              <div 
+                className="glass-panel animate-pulse-neon" 
+                style={{ 
+                  padding: '1rem 1.25rem', 
+                  borderColor: 'var(--neon-rose)', 
+                  background: 'var(--hud-bg)',
+                  borderRadius: '10px',
+                  marginBottom: '1.5rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '0.75rem'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <RefreshCw size={18} style={{ color: 'var(--neon-rose)' }} className="animate-spin-neon" />
+                  <div>
+                    <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem', marginRight: '0.4rem' }}>
+                      Background Scanning Active:
+                    </span>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                      Nova is indexing folders in the background.
+                    </span>
+                  </div>
+                </div>
+                <button 
+                  className="btn-danger" 
+                  onClick={() => setViewState('scanning')}
+                  style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', background: 'rgba(244, 63, 94, 0.1)', borderColor: 'var(--neon-rose)', cursor: 'pointer' }}
+                >
+                  View Scanning Status &rarr;
+                </button>
+              </div>
+            )}
+
             {/* Elegant Sub-Tab Selector for Home Page */}
             <div style={{ 
               display: 'flex', 

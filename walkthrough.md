@@ -1,7 +1,7 @@
 # Nova Disk Analyzer & Optimizer - Walkthrough
 
-> **Last Updated**: May 25, 2026, 11:10 AM (Local Time: 2026-05-25T11:10:00+02:00)
-> **Revision**: v3.1 (Integrated Background Scanning, Dedicated Sorter Tab, Light Mode Overhaul, Contrast Polish & Playwright Screenshot Automation)
+> **Last Updated**: May 25, 2026, 6:15 PM (Local Time: 2026-05-25T18:15:00+02:00)
+> **Revision**: v3.2 (Added Return-to-Report Headers, Camera Shutter Flash Animation, Screenshot Error Alerts, and Light Theme Treemap Contrast Polish)
 
 We have successfully completed all the newly requested feature expansions, transforming **Nova Disk Analyzer** into a complete **Nova Space Optimizer & Secure File Organizer**!
 
@@ -15,6 +15,8 @@ Our web application now incorporates the following advanced storage optimizer to
 - Renders a togglable **frosted glassmorphic Light Mode** alongside the Space Dark Theme.
 - Shifts backgrounds, border variables, tables, cards, text tones, and treemap shadow layers smoothly when the Sun/Moon icon in the header is clicked.
 - **Light Theme Redesign & Contrast Polish**: Overhauled global CSS variables and inline styles. Replaced all hardcoded text/input/panel colors (like white, `#cbd5e1`, `#94a3b8`) with semantic variables (`var(--text-primary)`, `var(--text-secondary)`, `var(--text-muted)`). This ensures 100% accessibility, legibility, and premium frosted glass aesthetics across breadcrumbs, navigation tabs, file organizers, duplicate finder panels, and document viewers.
+- **Visual Treemap Name Legibility**: Fixed a bug where folder/file names inside the visual space treemap nodes were filled with almost black text (`#0f172a`), making them unreadable against dark indigo/purple/rose node rects in Light Theme. The text fill has been forced to a premium high-contrast white with dark drop shadows in both themes.
+- **Hover Details Overlay Contrast**: Corrected hovered node card descriptions in the Treemap view which had hardcoded dark backgrounds but no text colors, ensuring they display in crisp high-contrast white in both dark and light modes.
 
 ### 2. Live Incremental Background Scanning
 - **Instant Scan Redirection**: Starting a scan instantly redirects the user to the results dashboard instead of blocking the view behind a loading overlay.
@@ -54,20 +56,26 @@ A dedicated React tab panel detailing space recovery items:
 - Standardizes feature captures using a headless browser.
 - Automatically installs Playwright to local workspace paths (avoiding AppData constraints), boots Chrome headlessly, logs into our local server, toggles light/dark themes, runs a scan, takes high-res screenshots of all 11 key states, and saves them to the `/screenshots` directory.
 
+### 9. Premium Navigation & UI Polish
+- **Home Navigation Anywhere**: Integrated an elegant, visible "Home" button in the top navigation header, enabling immediate redirection to the startup screen from any viewport (even during active background filesystem scans or finished report inspection).
+- **Scan & Report Recovery Buttons**: Mounted sticky, high-contrast, glowing action badges in the top navigation header when on the Home screen. If a background scan is active, it flashes a "Return to Active Scan &rarr;" badge; if a report is loaded, it shows a "Return to Report &rarr;" badge.
+- **Visual Camera Shutter Flash**: Added an instant white visual screen flash animation when the Camera button is clicked, providing immediate premium feedback to the user that a high-resolution Playwright screenshot has been initiated.
+- **Visual Screenshot Failure Banners**: Wired automated error-alert panels that slide in at the top of the viewport in case the automated screenshot service runs into local permission issues or port collisions.
+
 ---
 
 ## 📂 Deliverables Created & Expanded
 
 ### Backend Service & Repository Config (Python 3.14 + FastAPI)
 1. **[scanner.py](file:///d:/AntigravityCode/OS-Organiser%20And%20Analyzer/backend/scanner.py)**: Added `is_admin_privilege()` queries, the safe `organize_directory()` categorized sorter, and thread-safe pause/resume event handlers with elapsed time pause-drift calculations.
-2. **[main.py](file:///d:/AntigravityCode/OS-Organiser%20And%20Analyzer/backend/main.py)**: Added API routing endpoints for administrative checks (`/api/check-admin`), JSON report exporters (`/api/scan/{id}/export`), `/api/organize`, `/api/docs`, and scan pauser `/api/scan/{id}/pause` and `/api/scan/{id}/resume`.
+2. **[main.py](file:///d:/AntigravityCode/OS-Organiser%20And%20Analyzer/backend/main.py)**: Added API routing endpoints for administrative checks (`/api/check-admin`), JSON report exporters (`/api/scan/{id}/export`), `/api/organize`, `/api/docs`, `/api/screenshot` for Playwright screen grabs, and scan pauser `/api/scan/{id}/pause` and `/api/scan/{id}/resume`.
 3. **[take_screenshots.py](file:///d:/AntigravityCode/OS-Organiser%20And%20Analyzer/take_screenshots.py)**: standalone Playwright browser automation script.
 4. **[.gitignore](file:///d:/AntigravityCode/OS-Organiser%20And%20Analyzer/.gitignore)**: Standard git file ignore patterns for Python cache, Node packages, front-end build outputs, and scanner reports.
 
 ### Frontend Application (Vite + React + TypeScript)
 1. **[types.ts](file:///d:/AntigravityCode/OS-Organiser%20And%20Analyzer/frontend/src/types.ts)**: Declared types for administrative checks, simulated organizing moves, and expanded progress metrics.
-2. **[index.css](file:///d:/AntigravityCode/OS-Organiser%20And%20Analyzer/frontend/src/index.css)**: Implemented `.light` variables for a frosted glass light theme.
-3. **[App.tsx](file:///d:/AntigravityCode/OS-Organiser%20And%20Analyzer/frontend/src/App.tsx)**: Embedded togglers, Sun/Moon icons, home selector tab bars, full progress HUD views, and corner floating badges.
+2. **[index.css](file:///d:/AntigravityCode/OS-Organiser%20And%20Analyzer/frontend/src/index.css)**: Implemented `.light` variables for a frosted glass light theme, custom high-contrast treemap fills, and `@keyframes camera-flash` screen transitions.
+3. **[App.tsx](file:///d:/AntigravityCode/OS-Organiser%20And%20Analyzer/frontend/src/App.tsx)**: Embedded togglers, Sun/Moon icons, home selector tab bars, full progress HUD views, sticky header shortcut navigators, and shutter overlays.
 4. **[DiskSelector.tsx](file:///d:/AntigravityCode/OS-Organiser%20And%20Analyzer/frontend/src/components/DiskSelector.tsx)**: Rendered the Administrator privileges banner card.
 5. **[Dashboard.tsx](file:///d:/AntigravityCode/OS-Organiser%20And%20Analyzer/frontend/src/components/Dashboard.tsx)**: Added Space Organizer, Docs Viewer, and Features Guide tab switches and header Save JSON report buttons. Removed unused destructured properties to fix warnings.
 6. **[OptimizerTab.tsx](file:///d:/AntigravityCode/OS-Organiser%20And%20Analyzer/frontend/src/components/OptimizerTab.tsx)**: Wizard layout for diagnostics and duplicates.

@@ -1,6 +1,6 @@
 # Implementation Plan - Native Folder Selection, System-Wide Drive Scans, In-App HomePage Organizer, Misc File Grouping, and Scan Skip Filters
 
-> **Last Updated**: May 25, 2026, 11:10 AM (Local Time: 2026-05-25T11:10:00+02:00)
+> **Last Updated**: May 25, 2026, 6:15 PM (Local Time: 2026-05-25T18:15:00+02:00)
 > **Status**: Under Review (Requesting User Feedback)
 
 We will introduce five major feature expansions:
