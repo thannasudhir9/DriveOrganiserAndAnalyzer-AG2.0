@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { HardDrive, FolderOpen, ArrowRight, RefreshCw, AlertCircle, CheckCircle2, ShieldAlert, Database, Layers } from 'lucide-react';
 import { Drive } from '../types';
 
-// Detect whether running in Vite dev mode or FastAPI served mode
-export const API_BASE = import.meta.env.DEV ? 'http://localhost:8000' : '';
+// Dynamically resolve API base: local relative paths if served locally, fallback to local port 8000 if hosted remotely
+export const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
+  ? '' 
+  : 'http://localhost:8000';
 
 interface DiskSelectorProps {
   onStartScan: (path: string, skipHidden: boolean, skipPackages: boolean, skipCode: boolean) => void;
@@ -85,9 +87,53 @@ export const DiskSelector: React.FC<DiskSelectorProps> = ({ onStartScan }) => {
           <AlertCircle size={48} style={{ color: 'var(--neon-rose)', marginBottom: '1rem' }} />
           <h3 style={{ marginBottom: '0.5rem' }}>Failed to Load Drives</h3>
           <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>{error}</p>
-          <button className="btn-secondary" onClick={fetchDrives}>
-            <RefreshCw size={16} /> Try Again
-          </button>
+          
+          {window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && (
+            <div style={{
+              background: 'rgba(245, 158, 11, 0.05)',
+              border: '1px solid rgba(245, 158, 11, 0.2)',
+              borderRadius: '8px',
+              padding: '1.25rem',
+              maxWidth: '650px',
+              margin: '0 auto 1.5rem auto',
+              textAlign: 'left',
+              fontSize: '0.85rem',
+              color: 'var(--text-secondary)'
+            }}>
+              <strong style={{ color: 'var(--neon-amber)', display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                🌐 GitHub Pages Security Block detected
+              </strong>
+              <p style={{ marginBottom: '0.75rem' }}>
+                Browsers block secure HTTPS sites (like GitHub Pages) from making insecure local calls (like <code style={{ color: 'var(--neon-cyan)' }}>http://localhost:8000</code>) due to <strong>Mixed Content Security constraints</strong>.
+              </p>
+              <span style={{ fontWeight: 700, display: 'block', marginBottom: '0.35rem', color: 'white' }}>Quick Solutions:</span>
+              <ul style={{ paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                <li>
+                  <strong>Option A (Easiest):</strong> Run Nova locally in your terminal using <code style={{ color: 'var(--neon-indigo)' }}>python run.py</code>. It loads the app on a single unified local host, avoiding all browser security blocks entirely!
+                </li>
+                <li>
+                  <strong>Option B:</strong> Click the site lock/settings icon in your browser URL address bar, open <strong>Site Settings</strong>, find <strong>Insecure Content</strong>, and change it to <strong>Allow</strong>. Then reload this page!
+                </li>
+              </ul>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+            <button className="btn-secondary" onClick={fetchDrives}>
+              <RefreshCw size={16} /> Try Again
+            </button>
+            {window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && (
+              <button 
+                className="btn-primary" 
+                onClick={() => {
+                  setError(null);
+                }}
+                style={{ background: 'linear-gradient(135deg, var(--neon-indigo), var(--neon-cyan))' }}
+              >
+                Scan Manually &rarr;
+              </button>
+            )}
+          </div>
         </div>
       ) : (
         <>
