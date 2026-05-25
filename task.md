@@ -1,7 +1,7 @@
 # Task: Nova Disk Analyzer & Optimizer - Native Picker, Full Scans, HomePage Sorter, Skip Filters, and UI Theme Improvements
 
-> **Last Updated**: May 25, 2026, 6:15 PM (Local Time: 2026-05-25T18:15:00+02:00)
-> **Checklist Status**: In Progress
+> **Last Updated**: May 25, 2026, 6:25 PM (Local Time: 2026-05-25T18:25:00+02:00)
+> **Checklist Status**: Completed
 
 - [x] Phase 1: Backend Traversal & organizers Updates (`backend/scanner.py`) <!-- id: 0 -->
   - [x] Implement `ALL_SYSTEM_DRIVES` multi-path traversal in `DiskScanner`
@@ -20,12 +20,13 @@
   - [x] Add prominent "All Local Drives (Full System Scan)" button card in drives grid
   - [x] Render 3 glassmorphic toggle checkbox items for skip optimizations
   - [x] Add "Select Folder" folder picker buttons next to text fields in DiskSelector and OrganizerTab
-- [/] Phase 5: Home Navigation buttons, Shutter feedback, and Light theme name contrast fixes <!-- id: 4 -->
+- [x] Phase 5: Home Navigation buttons, Shutter feedback, and Light theme name contrast fixes <!-- id: 4 -->
   - [x] Add theme-aware CSS custom property styling for Home, Camera, and Theme header buttons in `App.tsx`
   - [x] Add visual "Camera Shutter Flash" micro-animation and error alert banners when taking screenshots
   - [x] Add glowing "Return to Active Scan" and "Return to Report" header navigation buttons in `App.tsx`
   - [x] Fix visual contrast of folder/file names in Visual Treemap and Hover details popup in `Treemap.tsx` for Light Theme
-  - [ ] Restart ASGI server and compile production bundles with `npm run build`
-- [ ] Phase 6: Verification & Final Document Updates <!-- id: 5 -->
-  - [ ] Verify screenshot, navigation return flows, and light theme name visibility
-  - [ ] Update README.md, future_scope.md, implementation_plan.md, and walkthrough.md with timestamp: `May 25, 2026, 6:15 PM`
+  - [x] Restart ASGI server and compile production bundles with `npm run build`
+- [x] Phase 6: Verification, Final Document Updates, and Git Synchronization <!-- id: 5 -->
+  - [x] Verify screenshot, navigation return flows, and light theme name visibility
+  - [x] Update README.md, future_scope.md, implementation_plan.md, and walkthrough.md with timestamp: `May 25, 2026, 6:15 PM`
+  - [x] Commit and push all codebase modifications cleanly to the remote GitHub repository default branch `main`
