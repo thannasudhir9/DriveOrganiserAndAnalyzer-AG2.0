@@ -1,16 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShieldAlert, RefreshCw, XCircle, HardDrive, Cpu, Circle, Database, Layers, Sun, Moon, Pause, Play, FileText, CheckCircle2, Sparkles } from 'lucide-react';
+import { ShieldAlert, RefreshCw, XCircle, HardDrive, Cpu, Circle, Database, Layers, Sun, Moon, Pause, Play, FileText, CheckCircle2, Sparkles, FolderSync, Camera } from 'lucide-react';
 import { DiskSelector, API_BASE, formatBytes } from './components/DiskSelector';
 import { Dashboard } from './components/Dashboard';
 import { ScanStatus, ScanSummary, DirectoryContent } from './types';
 import { DocsTab } from './components/DocsTab';
 import { FeaturesTab } from './components/FeaturesTab';
+import { OrganizerTab } from './components/OrganizerTab';
 
 export const App: React.FC = () => {
   const [viewState, setViewState] = useState<'selector' | 'scanning' | 'dashboard'>('selector');
   const [scanId, setScanId] = useState<string | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [homeTab, setHomeTab] = useState<'scan' | 'docs' | 'features'>('scan');
+  const [homeTab, setHomeTab] = useState<'scan' | 'docs' | 'features' | 'organize'>('scan');
+  const [activeTab, setActiveTab] = useState<'explorer' | 'search' | 'duplicates' | 'analytics' | 'optimizer' | 'organizer' | 'docs' | 'features'>('explorer');
+  const [screenshotting, setScreenshotting] = useState<boolean>(false);
+  const [screenshotNotice, setScreenshotNotice] = useState<string | null>(null);
   
   // Progress & results
   const [progress, setProgress] = useState<ScanStatus | null>(null);
@@ -47,6 +51,12 @@ export const App: React.FC = () => {
   const [currentPath, setCurrentPath] = useState<string>('');
   const [activeNode, setActiveNode] = useState<DirectoryContent | null>(null);
 
+  // Ref to hold current path for interval access without closures
+  const currentPathRef = useRef<string>('');
+  useEffect(() => {
+    currentPathRef.current = currentPath;
+  }, [currentPath]);
+
   // Error logging
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -62,11 +72,107 @@ export const App: React.FC = () => {
     }
   };
 
+  // Load URL query parameters on startup to recreate exact view for automated screenshots
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paramTheme = params.get('theme');
+    const paramViewState = params.get('viewState');
+    const paramHomeTab = params.get('homeTab');
+    const paramActiveTab = params.get('activeTab');
+    const paramCurrentPath = params.get('currentPath');
+    const paramScanId = params.get('scanId');
+
+    if (paramTheme === 'light' || paramTheme === 'dark') {
+      setTheme(paramTheme);
+      if (paramTheme === 'light') {
+        document.documentElement.classList.add('light');
+      } else {
+        document.documentElement.classList.remove('light');
+      }
+    }
+    if (paramViewState === 'selector' || paramViewState === 'scanning' || paramViewState === 'dashboard') {
+      setViewState(paramViewState);
+    }
+    if (paramHomeTab === 'scan' || paramHomeTab === 'docs' || paramHomeTab === 'features' || paramHomeTab === 'organize') {
+      setHomeTab(paramHomeTab);
+    }
+    if (paramActiveTab) {
+      setActiveTab(paramActiveTab as any);
+    }
+    if (paramCurrentPath) {
+      setCurrentPath(paramCurrentPath);
+      currentPathRef.current = paramCurrentPath;
+    }
+    if (paramScanId) {
+      setScanId(paramScanId);
+      fetchIntermediateResults(paramScanId, paramCurrentPath || '');
+    }
+  }, []);
+
+  const takeScreenshot = async () => {
+    setScreenshotting(true);
+    setScreenshotNotice(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/screenshot`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          theme,
+          view_state: viewState,
+          home_tab: homeTab,
+          active_tab: activeTab,
+          current_path: currentPath,
+          scan_id: scanId
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setScreenshotNotice(`Screenshot captured successfully as /screenshots/${data.filename}!`);
+          setTimeout(() => setScreenshotNotice(null), 6000);
+        } else {
+          console.error("Screenshot capture failed:", data);
+        }
+      } else {
+        console.error("Failed to call screenshot API:", res.statusText);
+      }
+    } catch (err) {
+      console.error("Error capturing screenshot:", err);
+    } finally {
+      setScreenshotting(false);
+    }
+  };
+
+  // Fetch intermediate results live
+  const fetchIntermediateResults = async (id: string, defaultPath: string) => {
+    try {
+      const targetPath = currentPathRef.current || defaultPath;
+      
+      // 1. Fetch intermediate summary statistics
+      const summaryRes = await fetch(`${API_BASE}/api/scan/${id}/summary`);
+      if (summaryRes.ok) {
+        const summaryData: ScanSummary = await summaryRes.json();
+        setSummary(summaryData);
+      }
+
+      // 2. Fetch the viewed folder contents
+      const nodeRes = await fetch(`${API_BASE}/api/scan/${id}/node?path=${encodeURIComponent(targetPath)}`);
+      if (nodeRes.ok) {
+        const nodeData: DirectoryContent = await nodeRes.json();
+        setActiveNode(nodeData);
+      }
+    } catch (err) {
+      console.error('Failed to retrieve intermediate scanning results:', err);
+    }
+  };
+
   // Poll scan progress
   const startPolling = (id: string, initialRoot: string) => {
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
     }
+
+    let intermediateCounter = 0;
 
     pollIntervalRef.current = setInterval(async () => {
       try {
@@ -76,6 +182,12 @@ export const App: React.FC = () => {
         }
         const data: ScanStatus = await res.json();
         setProgress(data);
+
+        // Fetch intermediate results (summary + active node) every 1.5 seconds (every 3rd poll)
+        intermediateCounter++;
+        if ((data.status === 'scanning' || data.status === 'paused') && intermediateCounter % 3 === 0) {
+          fetchIntermediateResults(id, initialRoot);
+        }
 
         if (data.status === 'completed') {
           clearInterval(pollIntervalRef.current);
@@ -138,9 +250,29 @@ export const App: React.FC = () => {
   };
 
   // Start a new scan on a drive or path
-  const handleStartScan = async (path: string) => {
+  const handleStartScan = async (
+    path: string, 
+    skipHidden: boolean = false, 
+    skipPackages: boolean = false, 
+    skipCode: boolean = false
+  ) => {
     setErrorMsg(null);
-    setViewState('scanning');
+    
+    // Set placeholder blank summary immediately to avoid dashboard crashes
+    const placeholderSummary: ScanSummary = {
+      root_path: path,
+      status: 'scanning',
+      total_size: 0,
+      scanned_folders: 0,
+      scanned_files: 0,
+      elapsed_time: 0,
+      top_files: [],
+      top_folders: [],
+      file_types: [],
+      duplicates: [],
+      permission_errors_count: 0
+    };
+    setSummary(placeholderSummary);
     setProgress({
       status: 'scanning',
       error: null,
@@ -151,12 +283,22 @@ export const App: React.FC = () => {
       elapsed_time: 0,
       permission_errors_count: 0
     });
+    
+    // Transition to dashboard IMMEDIATELY so the user sees results live!
+    setViewState('dashboard');
+    setRootPath(path);
+    setCurrentPath(path);
 
     try {
       const res = await fetch(`${API_BASE}/api/scan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path })
+        body: JSON.stringify({ 
+          path,
+          skip_hidden: skipHidden,
+          skip_packages: skipPackages,
+          skip_code: skipCode
+        })
       });
 
       if (!res.ok) {
@@ -203,7 +345,12 @@ export const App: React.FC = () => {
     
     // Split and slice off last item
     const parts = currentPath.split(/[\\/]/).filter(Boolean);
-    if (parts.length <= 1) return; // already at root drive
+    if (parts.length <= 1) {
+      if (rootPath === "All System Drives" && currentPath !== "All System Drives") {
+        handleNavigate("All System Drives");
+      }
+      return;
+    }
 
     let parentPath = '';
     if (isWindows && parts[0].includes(':')) {
@@ -229,7 +376,7 @@ export const App: React.FC = () => {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       
       {/* Header bar */}
-      <header className="app-header" style={{ padding: '1rem 2rem', background: 'rgba(9, 14, 30, 0.4)', backdropFilter: 'blur(10px)' }}>
+      <header className="app-header" style={{ padding: '1rem 2rem', background: theme === 'dark' ? 'rgba(9, 14, 30, 0.4)' : 'rgba(255, 255, 255, 0.4)', backdropFilter: 'blur(10px)' }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div 
             onClick={() => {
@@ -268,6 +415,35 @@ export const App: React.FC = () => {
               </div>
             )}
             
+            {/* Take Screenshot Button */}
+            <button
+               onClick={takeScreenshot}
+               disabled={screenshotting}
+               style={{
+                 background: 'rgba(255, 255, 255, 0.04)',
+                 border: '1px solid rgba(255, 255, 255, 0.08)',
+                 borderRadius: '50%',
+                 width: '32px',
+                 height: '32px',
+                 display: 'flex',
+                 alignItems: 'center',
+                 justifyContent: 'center',
+                 cursor: 'pointer',
+                 color: 'white',
+                 transition: 'var(--transition-smooth)',
+                 opacity: screenshotting ? 0.6 : 1
+               }}
+               onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'}
+               onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)'}
+               title="Take Screenshot of Current View"
+             >
+               {screenshotting ? (
+                 <RefreshCw size={14} style={{ color: 'var(--neon-rose)' }} className="animate-spin-neon" />
+               ) : (
+                 <Camera size={14} style={{ color: 'var(--neon-cyan)' }} />
+               )}
+             </button>
+
             {/* Theme Toggler Button */}
             <button
               onClick={toggleTheme}
@@ -300,6 +476,34 @@ export const App: React.FC = () => {
 
       {/* Main View Manager */}
       <main style={{ flex: 1 }}>
+        {screenshotNotice && (
+          <div style={{ maxWidth: '1000px', margin: '1.5rem auto 0 auto', padding: '0 1rem' }}>
+            <div 
+              className="glass-panel animate-pulse-neon" 
+              style={{ 
+                padding: '1rem 1.25rem', 
+                borderColor: 'rgba(45, 212, 191, 0.3)', 
+                background: 'rgba(45, 212, 191, 0.05)',
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                borderRadius: '10px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <CheckCircle2 size={20} style={{ color: 'var(--neon-cyan)' }} />
+                <p style={{ fontSize: '0.85rem', color: 'var(--neon-cyan)', fontWeight: 600 }}>{screenshotNotice}</p>
+              </div>
+              <button 
+                onClick={() => setScreenshotNotice(null)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', outline: 'none', display: 'flex', alignItems: 'center' }}
+              >
+                <XCircle size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
         {errorMsg && (
           <div style={{ maxWidth: '1000px', margin: '1.5rem auto 0 auto', padding: '0 1rem' }}>
             <div 
@@ -401,6 +605,26 @@ export const App: React.FC = () => {
                 <Sparkles size={16} style={{ color: homeTab === 'features' ? 'var(--neon-indigo)' : '#64748b' }} />
                 Application Features
               </button>
+              <button
+                onClick={() => setHomeTab('organize')}
+                style={{
+                  background: homeTab === 'organize' ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
+                  border: 'none',
+                  borderBottom: homeTab === 'organize' ? '2px solid var(--neon-indigo)' : '2px solid transparent',
+                  padding: '0.6rem 1.25rem',
+                  color: homeTab === 'organize' ? 'white' : '#64748b',
+                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.25s ease'
+                }}
+              >
+                <FolderSync size={16} style={{ color: homeTab === 'organize' ? 'var(--neon-indigo)' : '#64748b' }} />
+                File Organizer
+              </button>
             </div>
 
             {homeTab === 'scan' && (
@@ -416,262 +640,13 @@ export const App: React.FC = () => {
                 <FeaturesTab />
               </div>
             )}
+            {homeTab === 'organize' && (
+              <div className="glass-panel" style={{ padding: '2rem', borderRadius: '12px' }}>
+                <OrganizerTab currentPath="" onRefreshScan={() => {}} />
+              </div>
+            )}
           </div>
         )}
-
-        {/* View 2: Background scanning active */}
-        {viewState === 'scanning' && progress && (() => {
-          // Calculate scan percentage
-          let scanPercent = 0;
-          if (progress.status === 'completed') {
-            scanPercent = 100;
-          } else if (progress.is_drive_root && progress.drive_used_size) {
-            scanPercent = Math.min(99, Math.round((progress.total_size / progress.drive_used_size) * 100));
-          } else {
-            scanPercent = Math.min(99, Math.round((1 - Math.exp(-progress.scanned_files / 1800)) * 100));
-          }
-
-          // Calculate scanning speeds
-          const bps = progress.elapsed_time > 0 ? progress.total_size / progress.elapsed_time : 0;
-          const fps = progress.elapsed_time > 0 ? (progress.scanned_files + progress.scanned_folders) / progress.elapsed_time : 0;
-
-          // Format dynamic remaining time ETA
-          const calculateETASeconds = () => {
-            if (progress.elapsed_time < 2 || progress.status !== 'scanning') return null;
-            if (progress.is_drive_root && progress.drive_used_size && progress.total_size > 1024 * 1024) {
-              const fraction = progress.total_size / progress.drive_used_size;
-              if (fraction >= 1) return null;
-              const estimatedTotalTime = progress.elapsed_time / fraction;
-              const remainingSeconds = estimatedTotalTime - progress.elapsed_time;
-              return Math.max(1, Math.round(remainingSeconds));
-            } else {
-              const totalItems = progress.scanned_files + progress.scanned_folders;
-              if (totalItems < 100) return null;
-              const rate = totalItems / progress.elapsed_time;
-              if (rate <= 0) return null;
-              let estimatedTotalItems = Math.max(totalItems * 1.4, 800);
-              if (totalItems > 1200) estimatedTotalItems = totalItems + 400;
-              if (totalItems > 6000) estimatedTotalItems = totalItems + 1000;
-              const remainingItems = estimatedTotalItems - totalItems;
-              return Math.max(1, Math.round(remainingItems / rate));
-            }
-          };
-
-          const etaSec = calculateETASeconds();
-
-          const formatETA = (seconds: number | null) => {
-            if (seconds === null) return 'Estimating remaining time...';
-            if (seconds < 60) return `~${seconds}s remaining`;
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            return `~${mins}m ${secs}s remaining`;
-          };
-
-          const formatClock = (seconds: number) => {
-            const mins = Math.floor(seconds / 60);
-            const secs = Math.floor(seconds % 60);
-            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-          };
-
-          return (
-            <div 
-              className="animate-fade-in" 
-              style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                minHeight: '65vh', 
-                padding: '2rem' 
-              }}
-            >
-              <div className="glass-panel" style={{ width: '100%', maxWidth: '650px', padding: '2.5rem', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-                
-                {/* Spinning Neon Glowing Scan radar circle - freezes on paused */}
-                <div style={{ position: 'relative', width: '120px', height: '120px', margin: '0 auto 1.5rem auto' }}>
-                  <div 
-                    className={progress.status === 'paused' ? '' : 'animate-spin-neon'} 
-                    style={{ 
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: '100%',
-                      border: '3px solid transparent',
-                      borderTopColor: progress.status === 'paused' ? 'var(--neon-amber)' : 'var(--neon-indigo)',
-                      borderRightColor: progress.status === 'paused' ? 'rgba(245, 158, 11, 0.4)' : 'var(--neon-cyan)',
-                      borderRadius: '50%',
-                      boxShadow: progress.status === 'paused' 
-                        ? '0 0 15px rgba(245, 158, 11, 0.15)' 
-                        : '0 0 15px rgba(99, 102, 241, 0.25)',
-                      transition: 'all 0.5s ease'
-                    }} 
-                  />
-                  <div style={{ 
-                    position: 'absolute', 
-                    top: '50%', 
-                    left: '50%', 
-                    transform: 'translate(-50%, -50%)',
-                    color: progress.status === 'paused' ? 'var(--neon-amber)' : 'var(--neon-cyan)'
-                  }}>
-                    <HardDrive size={36} className={progress.status === 'paused' ? '' : 'animate-pulse'} />
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                  <h3 style={{ fontSize: '1.6rem', fontWeight: 800 }}>
-                    {progress.status === 'paused' ? 'Scan Paused' : 'Analyzing Storage'}
-                  </h3>
-                  <span style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    padding: '0.15rem 0.5rem',
-                    borderRadius: '20px',
-                    background: progress.status === 'paused' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(45, 212, 191, 0.15)',
-                    color: progress.status === 'paused' ? 'var(--neon-amber)' : 'var(--neon-cyan)',
-                    transition: 'all 0.3s ease'
-                  }}>
-                    {progress.status === 'paused' ? 'PAUSED' : 'ACTIVE'}
-                  </span>
-                </div>
-                
-                <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-                  {progress.is_drive_root 
-                    ? `Traversing system partition drive...` 
-                    : `Traversing directory and mapping folders size...`}
-                </p>
-
-                {/* visual premium progress bar */}
-                <div style={{ marginBottom: '2rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontSize: '0.85rem' }}>
-                    <span style={{ color: '#cbd5e1', fontWeight: 600 }}>Catalog Progress</span>
-                    <strong style={{ color: 'var(--neon-cyan)', fontSize: '0.95rem' }}>{scanPercent}%</strong>
-                  </div>
-                  <div style={{ 
-                    height: '10px', 
-                    borderRadius: '5px', 
-                    background: 'rgba(255, 255, 255, 0.05)', 
-                    border: '1px solid rgba(255,255,255,0.03)',
-                    overflow: 'hidden',
-                    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.5)'
-                  }}>
-                    <div style={{ 
-                      height: '100%', 
-                      width: `${scanPercent}%`,
-                      background: progress.status === 'paused'
-                        ? 'linear-gradient(90deg, #f59e0b, #d97706)'
-                        : 'linear-gradient(90deg, var(--neon-indigo), var(--neon-cyan))',
-                      borderRadius: '5px',
-                      boxShadow: progress.status === 'paused'
-                        ? '0 0 8px rgba(245, 158, 11, 0.5)'
-                        : '0 0 10px rgba(45, 212, 191, 0.4)',
-                      transition: 'width 0.4s ease-out, background-color 0.5s'
-                    }} />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b', marginTop: '0.4rem' }}>
-                    <span>{progress.is_drive_root && progress.drive_used_size ? `Of ${formatBytes(progress.drive_used_size)} Used Disk Capacity` : 'Custom Directory Scope'}</span>
-                    <span style={{ fontWeight: 600, color: progress.status === 'paused' ? '#64748b' : 'white' }}>
-                      {formatETA(etaSec)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Progress metrics grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                  <div style={{ padding: '0.85rem', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px', textAlign: 'left' }}>
-                    <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.15rem' }}>
-                      Space Discovered
-                    </span>
-                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--neon-cyan)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <Database size={16} /> {formatBytes(progress.total_size)}
-                    </span>
-                  </div>
-                  <div style={{ padding: '0.85rem', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px', textAlign: 'left' }}>
-                    <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.15rem' }}>
-                      Objects Indexed
-                    </span>
-                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--neon-indigo)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <Layers size={16} /> {(progress.scanned_files + progress.scanned_folders).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Live path log */}
-                <div style={{ marginBottom: '2rem', textAlign: 'left' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b', marginBottom: '0.4rem' }}>
-                    <span>Currently scanning:</span>
-                    <span>
-                      Speed: <strong>{progress.status === 'paused' ? '0' : Math.round(fps).toLocaleString()}</strong> items/s 
-                      ({progress.status === 'paused' ? '0 Bytes' : formatBytes(bps)}/s)
-                    </span>
-                  </div>
-                  <div 
-                    style={{ 
-                      background: 'rgba(0, 0, 0, 0.25)', 
-                      border: '1px solid rgba(255, 255, 255, 0.04)',
-                      padding: '0.65rem 0.85rem', 
-                      borderRadius: '6px',
-                      fontFamily: 'JetBrains Mono, monospace',
-                      fontSize: '0.8rem',
-                      color: '#cbd5e1',
-                      textOverflow: 'ellipsis',
-                      overflow: 'hidden',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {progress.current_folder}
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '1.25rem' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', gap: '0.1rem' }}>
-                    <span style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Elapsed Clock</span>
-                    <strong style={{ fontSize: '1.15rem', color: 'white', fontFamily: 'monospace' }}>
-                      {formatClock(progress.elapsed_time)}
-                    </strong>
-                  </div>
-                  
-                  <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    <button 
-                      className="btn-secondary" 
-                      onClick={() => setViewState('selector')}
-                      style={{ padding: '0.55rem 1.15rem', fontSize: '0.85rem' }}
-                    >
-                      Minimize Scan
-                    </button>
-                    
-                    {progress.status === 'scanning' ? (
-                      <button 
-                        className="btn-secondary" 
-                        onClick={handlePauseScan}
-                        style={{ padding: '0.55rem 1.15rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem', borderColor: 'rgba(245, 158, 11, 0.3)' }}
-                      >
-                        <Pause size={14} style={{ color: 'var(--neon-amber)' }} /> Pause Scan
-                      </button>
-                    ) : (
-                      <button 
-                        className="btn-primary" 
-                        onClick={handleResumeScan}
-                        style={{ padding: '0.55rem 1.15rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(45, 212, 191, 0.1)', borderColor: 'var(--neon-cyan)' }}
-                      >
-                        <Play size={14} style={{ color: 'var(--neon-cyan)' }} /> Resume Scan
-                      </button>
-                    )}
-
-                    <button 
-                      className="btn-danger" 
-                      onClick={handleCancelScan}
-                      style={{ padding: '0.55rem 1.15rem', fontSize: '0.85rem' }}
-                    >
-                      Abort Scan
-                    </button>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          );
-        })()}
 
         {/* View 3: Complete Results Summary Dashboard */}
         {viewState === 'dashboard' && summary && (
@@ -682,8 +657,19 @@ export const App: React.FC = () => {
             onGoBack={handleGoBack}
             currentPath={currentPath}
             rootPath={rootPath}
-            onScanNew={() => setViewState('selector')}
+            onScanNew={() => {
+              setViewState('selector');
+              setScanId(null);
+              setProgress(null);
+            }}
             scanId={scanId || ''}
+            progress={progress}
+            handlePauseScan={handlePauseScan}
+            handleResumeScan={handleResumeScan}
+            handleCancelScan={handleCancelScan}
+            theme={theme}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
           />
         )}
       </main>
@@ -767,7 +753,7 @@ export const App: React.FC = () => {
 
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
               <button 
-                onClick={() => setViewState('scanning')} 
+                onClick={() => setViewState('dashboard')} 
                 className="btn-primary" 
                 style={{ flex: 1, padding: '0.4rem 0.75rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
               >

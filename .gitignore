@@ -24,3 +24,7 @@ Thumbs.db
 
 # Local run reports
 reports/
+
+# Playwright binaries & screenshots
+playwright-browsers/
+screenshots/

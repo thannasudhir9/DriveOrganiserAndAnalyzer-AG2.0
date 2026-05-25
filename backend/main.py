@@ -32,6 +32,9 @@ scans_registry = {}
 
 class ScanRequest(BaseModel):
     path: str
+    skip_hidden: Optional[bool] = False
+    skip_packages: Optional[bool] = False
+    skip_code: Optional[bool] = False
 
 @app.get("/api/drives")
 def get_drives():
@@ -72,17 +75,23 @@ def start_scan(request: ScanRequest):
     """
     target_path = request.path.strip()
     
-    if not os.path.exists(target_path):
-        raise HTTPException(status_code=400, detail="The specified path does not exist.")
-        
-    if not os.path.isdir(target_path):
-        raise HTTPException(status_code=400, detail="The specified path is not a directory.")
+    if target_path != "ALL_SYSTEM_DRIVES":
+        if not os.path.exists(target_path):
+            raise HTTPException(status_code=400, detail="The specified path does not exist.")
+            
+        if not os.path.isdir(target_path):
+            raise HTTPException(status_code=400, detail="The specified path is not a directory.")
         
     # Generate unique scan ID
     scan_id = str(uuid.uuid4())
     
     # Instantiate and start the scanner
-    scanner = DiskScanner(target_path)
+    scanner = DiskScanner(
+        target_path,
+        skip_hidden=request.skip_hidden,
+        skip_packages=request.skip_packages,
+        skip_code=request.skip_code
+    )
     scans_registry[scan_id] = scanner
     scanner.start()
     
@@ -219,6 +228,31 @@ def organize_folder(request: OrganizeRequest):
         raise HTTPException(status_code=400, detail=res["error"])
     return res
 
+@app.post("/api/select-folder")
+def select_folder():
+    """
+    Opens a native OS folder selection dialog on the host system using Tkinter
+    and returns the selected absolute path.
+    """
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+        
+        # Initialize and hide root window
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes('-topmost', True) # Bring dialogue to front of all windows
+        
+        folder_path = filedialog.askdirectory(title="Select Directory to Scan")
+        root.destroy()
+        
+        if folder_path:
+            return {"success": True, "path": os.path.abspath(folder_path)}
+        else:
+            return {"success": True, "path": ""}
+    except Exception as e:
+        return {"success": False, "error": str(e), "path": ""}
+
 @app.get("/api/docs")
 def get_doc(file: str = Query(..., description="Document key to retrieve")):
     """
@@ -257,6 +291,79 @@ def get_doc(file: str = Query(..., description="Document key to retrieve")):
         "filename": filename,
         "content": content,
         "last_modified": last_modified
+    }
+
+class ScreenshotRequest(BaseModel):
+    theme: Optional[str] = "dark"
+    view_state: Optional[str] = "selector"
+    home_tab: Optional[str] = "scan"
+    active_tab: Optional[str] = "explorer"
+    current_path: Optional[str] = ""
+    scan_id: Optional[str] = None
+
+@app.post("/api/screenshot")
+def take_custom_screenshot(req: ScreenshotRequest):
+    """
+    Takes a premium automated screenshot of the current viewport using headlessly automated Playwright Chromium.
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        raise HTTPException(status_code=500, detail="Playwright is not installed. Please run take_screenshots.py to install it first.")
+        
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    screenshots_dir = os.path.join(root_dir, "screenshots")
+    os.makedirs(screenshots_dir, exist_ok=True)
+    
+    # Configure Playwright browser path to avoid AppData permissions
+    os.environ["PLAYWRIGHT_BROWSERS_PATH"] = os.path.join(root_dir, "playwright-browsers")
+    
+    # Construct URL with active query parameters
+    query_parts = []
+    if req.theme:
+        query_parts.append(f"theme={req.theme}")
+    if req.view_state:
+        query_parts.append(f"viewState={req.view_state}")
+    if req.home_tab:
+        query_parts.append(f"homeTab={req.home_tab}")
+    if req.active_tab:
+        query_parts.append(f"activeTab={req.active_tab}")
+    if req.current_path:
+        from urllib.parse import quote
+        query_parts.append(f"currentPath={quote(req.current_path)}")
+    if req.scan_id:
+        query_parts.append(f"scanId={req.scan_id}")
+        
+    query_str = "&".join(query_parts)
+    target_url = f"http://127.0.0.1:8000/?{query_str}"
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    screenshot_filename = f"screenshot_manual_{timestamp}.png"
+    screenshot_filepath = os.path.join(screenshots_dir, screenshot_filename)
+    
+    def worker():
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            # Match standard viewport
+            page = browser.new_page(viewport={"width": 1440, "height": 900})
+            try:
+                page.goto(target_url)
+                # Wait for react elements, animations, and state to render
+                import time
+                time.sleep(2.5)
+                page.screenshot(path=screenshot_filepath)
+            finally:
+                browser.close()
+                
+    try:
+        worker()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Playwright screenshot capture failed: {str(e)}")
+        
+    return {
+        "success": True,
+        "filename": screenshot_filename,
+        "filepath": screenshot_filepath
     }
 
 # Serving static assets for the React UI

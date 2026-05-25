@@ -134,14 +134,14 @@ export const DocsTab: React.FC = () => {
             <pre 
               key={`code-${idx}`} 
               style={{ 
-                background: 'rgba(0,0,0,0.3)', 
-                border: '1px solid rgba(255,255,255,0.04)', 
+                background: 'var(--card-inner-bg)', 
+                border: '1px solid var(--card-inner-border)', 
                 padding: '1rem', 
                 borderRadius: '8px', 
                 overflowX: 'auto',
                 fontFamily: 'JetBrains Mono, monospace',
                 fontSize: '0.8rem',
-                color: '#cbd5e1',
+                color: 'var(--text-secondary)',
                 lineHeight: 1.5,
                 margin: '1rem 0'
               }}
@@ -230,7 +230,7 @@ export const DocsTab: React.FC = () => {
               borderRadius: '0 8px 8px 0', 
               margin: '1rem 0',
               fontSize: '0.85rem',
-              color: '#cbd5e1'
+              color: 'var(--text-secondary)'
             }}
           >
             {parseInlineStyles(line.slice(2))}
@@ -248,7 +248,7 @@ export const DocsTab: React.FC = () => {
               marginLeft: '1.5rem', 
               marginBottom: '0.35rem', 
               fontSize: '0.85rem', 
-              color: '#cbd5e1' 
+              color: 'var(--text-secondary)' 
             }}
           >
             {parseInlineStyles(line.slice(2))}
@@ -264,7 +264,7 @@ export const DocsTab: React.FC = () => {
             key={idx} 
             style={{ 
               border: 'none', 
-              borderTop: '1px solid rgba(255,255,255,0.06)', 
+              borderTop: '1px solid var(--border-light)', 
               margin: '1.5rem 0' 
             }} 
           />
@@ -285,7 +285,7 @@ export const DocsTab: React.FC = () => {
           style={{ 
             fontSize: '0.85rem', 
             lineHeight: 1.6, 
-            color: '#cbd5e1', 
+            color: 'var(--text-secondary)', 
             marginBottom: '0.75rem' 
           }}
         >
@@ -330,10 +330,10 @@ export const DocsTab: React.FC = () => {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', overflow: 'hidden' }}>
                     <div style={{ color: isActive ? 'var(--neon-indigo)' : '#64748b', flexShrink: 0 }}>
-                      <Icon size={18} />
+                       <Icon size={18} />
                     </div>
                     <div style={{ overflow: 'hidden' }}>
-                      <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: isActive ? 'white' : '#cbd5e1', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                      <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                         {doc.name}
                       </h4>
                       <p style={{ fontSize: '0.75rem', color: '#64748b', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
@@ -384,10 +384,10 @@ export const DocsTab: React.FC = () => {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}>
                   <FileText size={14} style={{ color: 'var(--neon-cyan)' }} />
-                  <span style={{ color: 'white', fontSize: '0.85rem' }}>{DOCUMENTS.find(d => d.key === activeDocKey)?.name}</span>
+                  <span style={{ color: 'var(--text-primary)', fontSize: '0.85rem' }}>{DOCUMENTS.find(d => d.key === activeDocKey)?.name}</span>
                 </div>
                 <div>
-                  Last Modified: <span style={{ fontFamily: 'monospace', color: '#cbd5e1' }}>{lastModified}</span>
+                  Last Modified: <span style={{ fontFamily: 'monospace', color: 'var(--text-secondary)' }}>{lastModified}</span>
                 </div>
               </div>
 

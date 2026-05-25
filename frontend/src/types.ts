@@ -84,6 +84,8 @@ export interface OrganizeResponse {
   moved_count: number;
   moves: OrganizeMove[];
   errors?: { file: string; error: string }[];
+  report_path?: string;
+  report_content?: string;
 }
 
 export interface AdminResponse {

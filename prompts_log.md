@@ -403,5 +403,56 @@ https://github.com/thannasudhir9/DriveOrganiserAndAnalyzer-AG2.0.git
 - Configured a remote link pointing to `https://github.com/thannasudhir9/DriveOrganiserAndAnalyzer-AG2.0.git` on the default branch `main`.
 - Synchronized all updated source files, asset bundles, design systems, and documentation files smoothly to the GitHub remote repository.
 
+---
+
+## 📅 Prompt 13: Instant Scan dashboard, Dedicated File Organizer Tab, Light Theme Overhaul, Automated Screenshots, and Manuals Synchronizations
+
+### ⏰ Timestamp: `2026-05-25T10:25:00+02:00`
+
+### 💬 Input Command:
+```
+I should see file organizer tab, which can organise my selected folder, and show me first how its going to rearrange all the contents and only when approved / accepted by user , it should rearrange and also show and create a file with the information of what will been rearranged with full track.
+
+also when scanning , I should see the content instantly , the scanning should be going on in background and show a message and progress on top , that scanning is still ongoing and the percentange and all other information , how you are showing currently should stay 
+
+also create a screenshot folder and take screenshot of the applications and cover all features and keep in that folder
+
+handle dark mode is good, handle in light mode is bad, improve css and other ui parts in light mode properly - use light colors and improve and make it better
+
+update all docs with date and time
+and dont push any changes until I ask you to push to repo
+```
+
+### 🎯 Key Outcomes:
+- **Dedicated File Organizer Tab**: Implemented `OrganizerTab.tsx` component providing structured categorized preview of loose files (dry-run), execution rearrangement (atomic moves) and custom track logs log terminal. The sorting logs are outputted to the screen and saved in a beautifully formatted text report (`organize_report_[timestamp].txt`) inside the target directory.
+- **Instant/Incremental Scan Dashboard**: Rebuilt frontend polling cycle to instantly navigate the user to the results dashboard upon starting a scan, periodically querying filesystem nodes and rendering treemaps, lists, and charts live in the background while keeping the top HUD progress banner updated.
+- **Light Theme Overhaul**: Re-architected global CSS variables in `index.css` to use sleek off-white slate variables, high-contrast text, premium light colors, and polished glassmorphic overlays for maximum readability in Light Mode.
+- **Automated Screenshots**: Created `take_screenshots.py` using Playwright browser automation to headlessly capture 11 high-quality full-feature snapshots across Dark and Light modes inside the `/screenshots` directory.
+- **Date/Time Document Synchronization**: Updated all workspace manuals, tasks, walkthrough, and developer prompt logs with the uniform timestamp (`May 25, 2026, 10:25 AM`).
+- **Compilation Warning Fixes**: Corrected Python string syntax in `OrganizerTab.tsx` and removed unused destructured parameters in `Dashboard.tsx` to ensure 100% clean production compilation.
+
+---
+
+## 📅 Prompt 14: Premium Visual Contrast Overhaul, Dynamic Take Screenshot Button, URL State Sync & Future Scope Roadmap
+
+### ⏰ Timestamp: `2026-05-25T11:10:00+02:00`
+
+### 💬 Input Command:
+```
+handle the light theme , properly, as I cant see some text and color coding is bad in light mode, fix it
+Add take screenshot button in the webapp
+Add a future scope file and add some ideas in it to improve and handle all cases
+update all the documents with date and time and push the code to repo
+```
+
+### 🎯 Key Outcomes:
+- **Premium Light Theme Overhaul**: Substituted all hardcoded colors, borders, and input fields (white text, `#cbd5e1`, `#94a3b8`) across `Breadcrumbs.tsx`, `Dashboard.tsx`, `DiskSelector.tsx`, `DuplicatesTab.tsx`, `DocsTab.tsx`, and `FeaturesTab.tsx` with unified dynamic CSS variables (`var(--text-primary)`, `var(--text-secondary)`, `var(--text-muted)`, `var(--hud-bg)`, `var(--tabs-bg)`, `var(--bar-bg)`, `var(--card-inner-bg)`, `var(--card-inner-border)`). This delivers 100% legibility and gorgeous visual contrast in frosted glassmorphic Light Mode.
+- **Dynamic "Take Screenshot" Button**: Embedded a sleek "Take Screenshot" button in the webapp header next to the theme toggle. Clicking it invokes the headlessly automated Playwright Chromium backend via a new FastAPI `/api/screenshot` endpoint to capture full viewports on the fly.
+- **URL Parameter Sync**: Configured a startup `useEffect` parameter sync parser in `App.tsx` and synced active tab hooks in `Dashboard.tsx` so that headless sessions automatically mirror the user's exact current workspace, theme, active tab, directory path, and active scan status.
+- **Future Scope Roadmap**: Authored a premium `future_scope.md` project guide detailing Rust filesystem traversal bindings, low-level Win32/POSIX system calls, content-based cryptographic file hashing deduplications, AI/NLP-based sorting classifiers, dynamic UAC/sudo permission elevators, and long-path prefixes handlers.
+- **Flawless Production Build**: Cleaned unused `theme` property destructuring inside `Dashboard.tsx` to pass Vite production compilations cleanly without any warnings in 359ms.
+- **Uniform Timestamps & Git Push**: Updated all documents, tasks, READMEs, and logs with timestamp `May 25, 2026, 11:10 AM` and pushed all codebase modifications cleanly to the remote GitHub repository.
+
+
 
 

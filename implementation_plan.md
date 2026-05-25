@@ -1,164 +1,227 @@
-# Implementation Plan - Scanning Progress Bar, ETA, Background Scanning & Pause/Resume
+# Implementation Plan - Native Folder Selection, System-Wide Drive Scans, In-App HomePage Organizer, Misc File Grouping, and Scan Skip Filters
 
-> **Last Updated**: May 25, 2026, 10:15 AM (Local Time: 2026-05-25T10:15:00+02:00)
-> **Status**: Approved & Executed (100% Completed)
+> **Last Updated**: May 25, 2026, 11:10 AM (Local Time: 2026-05-25T11:10:00+02:00)
+> **Status**: Under Review (Requesting User Feedback)
 
-We will expand the **Nova Space Analyzer** scanning interface to implement a highly interactive, non-blocking scanning environment that features:
-1. A **visual progress bar** representing scan completeness.
-2. An **elapsed scan clock** and live speed metrics (MB/s + items/s).
-3. A **dynamic moving-average ETA (Estimated Time to Complete)** / ETC countdown.
-4. A **non-blocking background scanning** workflow where the user can navigate back to the Home page (`DiskSelector`) at any time during an active scan, leaving the scan running smoothly in the background.
-5. A **floating interactive scan monitor card** in the bottom-right corner when scanning is active but minimized, allowing the user to view mini-progress, abort, or restore the full screen scanner in one click.
-6. A **System Docs sub-tab directly on the Home Selector Page**, allowing immediate access to README, checklists, prompts history, and architectural specifications on launch without requiring a scan.
-7. A **Pause / Resume Scanning capability** utilizing low-overhead Python thread condition primitives.
+We will introduce five major feature expansions:
+1. **Native Folder Selection Dialog**: Integrates a "Select Folder" button next to custom path inputs on both the Disk Selector screen and the File Organizer. Clicking it opens a native Windows folder picker dialogue (`tkinter.filedialog.askdirectory`) in a non-blocking background thread and pre-fills the path field.
+2. **System-Wide Drive Scans**: Adds a prominent "All Local Drives (Full System Scan)" button in the drive selector grid. This will spin a unified, multi-drive traversal scan across all active partitions (C:, D:, etc.), aggregating statistics, storage capacities, and folder trees under a single virtual root (`All System Drives`).
+3. **HomePage File Organizer Tab**: Mounts the File Organizer directly as a primary tab on the Home startup screen, enabling loose-file organization on any folder without running a prior scan.
+4. **Misc File Grouping & Safety Skip**: Upgrades `organize_directory` in the backend scanner to automatically catch loose files with other extensions (e.g. `.ipynb`, `.torrent`, and any others) and group them into a `/Misc` folder. Also skips organizing files starting with `organize_report_` to prevent moving its own logs.
+5. **Scanning Skip Filters (Performance Boost)**: Introduces three glassmorphic toggle configurations on the startup selector screen to skip scanning specific elements, saving substantial time:
+   - **Skip Hidden Folders**: Skips folders starting with a dot (e.g. `.git`, `.github`, `.vscode`).
+   - **Skip Heavy Packages**: Skips standard dependency and environment folders (e.g. `node_modules`, `venv`, `.venv`, `env`, `bower_components`).
+   - **Skip Source Code Files**: Skips files with programming language extensions (e.g. `.js`, `.py`, `.cpp`, `.ts`).
 
 ---
 
 ## ⚙️ Proposed Changes & Detailed Implementations
 
-We will make minimal, high-impact edits to the following files:
-
-### 1. Backend Service (`backend/scanner.py`)
-- Introduce pause tracking flags (`self.pause_flag`, `self.pause_event = threading.Event()`, `self.total_paused_time = 0`, `self.last_pause_start = 0`).
-- Wait on the event inside recursive directory entry scans: `self.pause_event.wait()`.
-- Add `pause()` and `resume()` methods to halt/wake the scanning loop and accurately adjust elapsed time.
-- Expose the drive capacity fields (`drive_used_size`, `drive_total_size`, `drive_free_size`) and partition type flag `is_drive_root` in the API payload response.
+### 1. Backend Traversal & Skip Options (`backend/scanner.py`)
+- Expand `DiskScanner.__init__` to support:
+  - Multiple `root_paths` (list of paths). If the single path `"ALL_SYSTEM_DRIVES"` is passed, we resolve all active partitions from `psutil.disk_partitions()`.
+  - Skip flags: `skip_hidden`, `skip_packages`, `skip_code`.
+- Modify `_scan_folder(path)` recursive engine:
+  - If a directory matches `skip_hidden=True` and `name.startswith(".")`, skip traversing.
+  - If a directory matches `skip_packages=True` and `name` in (`"node_modules"`, `"venv"`, `".venv"`, `"env"`, `"bower_components"`, `".idea"`, `".vscode"`, `".git"`), skip traversing.
+  - If a file matches `skip_code=True` and its category is `"Code"`, skip indexing/processing.
+- Upgrade `organize_directory(path, simulate)`:
+  - Skip files starting with `organize_report_`.
+  - If an extension does not match `GROUPS` (e.g. `.ipynb`, `.torrent`), assign it to `"Misc"`.
 
 ```python
-    def __init__(self, root_path):
-        # ... original counters ...
-        self.pause_flag = False
-        self.pause_event = threading.Event()
-        self.pause_event.set()  # Starts non-blocking
-        self.total_paused_time = 0
-        self.last_pause_start = 0
-        # ... original heaps ...
+# In backend/scanner.py
+class DiskScanner:
+    def __init__(self, root_path, skip_hidden=False, skip_packages=False, skip_code=False):
+        # Handle single vs. all system drives scan
+        if root_path == "ALL_SYSTEM_DRIVES":
+            import psutil
+            self.root_paths = []
+            for partition in psutil.disk_partitions():
+                if 'cdrom' not in partition.opts and partition.fstype != '':
+                    try:
+                        # Test path accessibility
+                        os.scandir(partition.mountpoint)
+                        self.root_paths.append(partition.mountpoint)
+                    except:
+                        continue
+            self.root_path = "All System Drives"
+        else:
+            self.root_paths = [os.path.abspath(root_path)]
+            self.root_path = os.path.abspath(root_path)
 
-    def pause(self):
-        if self.status == "scanning" and not self.pause_flag:
-            self.pause_flag = True
-            self.pause_event.clear()
-            self.status = "paused"
-            self.last_pause_start = time.time()
+        self.skip_hidden = skip_hidden
+        self.skip_packages = skip_packages
+        self.skip_code = skip_code
+        # ... other variables ...
 
-    def resume(self):
-        if self.status == "paused" or self.pause_flag:
-            self.pause_flag = False
-            self.pause_event.set()
-            self.status = "scanning"
-            if self.last_pause_start > 0:
-                self.total_paused_time += time.time() - self.last_pause_start
-                self.last_pause_start = 0
-
-    def get_progress(self):
-        if self.status == "scanning":
-            self.elapsed_time = time.time() - self.start_time - self.total_paused_time
-        elif self.status == "paused" and self.last_pause_start > 0:
-            self.elapsed_time = self.last_pause_start - self.start_time - self.total_paused_time
-            
-        import shutil
-        drive_total = 0
-        drive_used = 0
+    def _scan_thread(self):
         try:
-            usage = shutil.disk_usage(self.root_path)
-            drive_total = usage.total
-            drive_used = usage.used
-        except OSError:
-            pass
-            
-        drive, path_part = os.path.splitdrive(self.root_path)
-        is_drive_root = path_part in ('\\', '/', '')
-            
-        return {
-            "status": self.status,
-            "error": self.error,
-            "scanned_folders": self.scanned_folders,
-            "scanned_files": self.scanned_files,
-            "total_size": self.total_size,
-            "current_folder": self.current_folder,
-            "elapsed_time": round(self.elapsed_time, 2),
-            "permission_errors_count": len(self.permission_errors),
-            "is_drive_root": is_drive_root,
-            "drive_used_size": drive_used,
-            "drive_total_size": drive_total
-        }
-```
+            # If scanning all drives, initialize the virtual root in folders_data
+            if len(self.root_paths) > 1:
+                self.folders_data["All System Drives"] = {
+                    "name": "All System Drives",
+                    "size": 0,
+                    "files_count": 0,
+                    "subfolders": [r for r in self.root_paths],
+                    "files": []
+                }
 
-Add the `self.pause_event.wait()` checkpoints inside `_scan_folder` before stat calls and loop checks:
-```python
-    def _scan_folder(self, path):
-        self.pause_event.wait()
-        if self.cancel_flag:
-            return 0
-        # ...
-        try:
-            with os.scandir(path) as entries:
-                for entry in entries:
-                    self.pause_event.wait()
-                    # ... rest of entry checks ...
+            total_system_size = 0
+            total_system_files = 0
+            for r_path in self.root_paths:
+                if self.cancel_flag:
+                    break
+                sub_size = self._scan_folder(r_path)
+                total_system_size += sub_size
+
+            if len(self.root_paths) > 1:
+                self.folders_data["All System Drives"]["size"] = total_system_size
+                for r_path in self.root_paths:
+                    total_system_files += self.folders_data[r_path]["files_count"]
+                self.folders_data["All System Drives"]["files_count"] = total_system_files
+
+            if not self.cancel_flag:
+                self.status = "completed"
+        except Exception as e:
+            self.status = "failed"
+            self.error = str(e)
+        finally:
+            self.elapsed_time = time.time() - self.start_time
 ```
 
 ---
 
-### 2. Backend Routes (`backend/main.py`)
-Add endpoints `/api/scan/{scan_id}/pause` and `/api/scan/{scan_id}/resume`:
-```python
-@app.post("/api/scan/{scan_id}/pause")
-def pause_scan(scan_id: str):
-    if scan_id not in scans_registry:
-        raise HTTPException(status_code=404, detail="Scan ID not found.")
-    scanner = scans_registry[scan_id]
-    scanner.pause()
-    return {"status": scanner.status}
+## ⚙️ Proposed Changes & Detailed Implementations
 
-@app.post("/api/scan/{scan_id}/resume")
-def resume_scan(scan_id: str):
-    if scan_id not in scans_registry:
-        raise HTTPException(status_code=404, detail="Scan ID not found.")
-    scanner = scans_registry[scan_id]
-    scanner.resume()
-    return {"status": scanner.status}
+### 1. Backend Traversal & Skip Options (`backend/scanner.py`)
+- Expand `DiskScanner.__init__` to support:
+  - Multiple `root_paths` (list of paths). If the single path `"ALL_SYSTEM_DRIVES"` is passed, we resolve all active partitions from `psutil.disk_partitions()`.
+  - Skip flags: `skip_hidden`, `skip_packages`, `skip_code`.
+- Modify `_scan_folder(path)` recursive engine:
+  - If a directory matches `skip_hidden=True` and `name.startswith(".")`, skip traversing.
+  - If a directory matches `skip_packages=True` and `name` in (`"node_modules"`, `"venv"`, `".venv"`, `"env"`, `"bower_components"`, `".idea"`, `".vscode"`, `".git"`), skip traversing.
+  - If a file matches `skip_code=True` and its category is `"Code"`, skip indexing/processing.
+- Upgrade `organize_directory(path, simulate)`:
+  - Skip files starting with `organize_report_`.
+  - If an extension does not match `GROUPS` (e.g. `.ipynb`, `.torrent`), assign it to `"Misc"`.
+
+```python
+# In backend/scanner.py
+class DiskScanner:
+    def __init__(self, root_path, skip_hidden=False, skip_packages=False, skip_code=False):
+        # Handle single vs. all system drives scan
+        if root_path == "ALL_SYSTEM_DRIVES":
+            import psutil
+            self.root_paths = []
+            for partition in psutil.disk_partitions():
+                if 'cdrom' not in partition.opts and partition.fstype != '':
+                    try:
+                        # Test path accessibility
+                        os.scandir(partition.mountpoint)
+                        self.root_paths.append(partition.mountpoint)
+                    except:
+                        continue
+            self.root_path = "All System Drives"
+        else:
+            self.root_paths = [os.path.abspath(root_path)]
+            self.root_path = os.path.abspath(root_path)
+
+        self.skip_hidden = skip_hidden
+        self.skip_packages = skip_packages
+        self.skip_code = skip_code
+        # ... other variables ...
+
+    def _scan_thread(self):
+        try:
+            # If scanning all drives, initialize the virtual root in folders_data
+            if len(self.root_paths) > 1:
+                self.folders_data["All System Drives"] = {
+                    "name": "All System Drives",
+                    "size": 0,
+                    "files_count": 0,
+                    "subfolders": [r for r in self.root_paths],
+                    "files": []
+                }
+
+            total_system_size = 0
+            total_system_files = 0
+            for r_path in self.root_paths:
+                if self.cancel_flag:
+                    break
+                sub_size = self._scan_folder(r_path)
+                total_system_size += sub_size
+
+            if len(self.root_paths) > 1:
+                self.folders_data["All System Drives"]["size"] = total_system_size
+                for r_path in self.root_paths:
+                    total_system_files += self.folders_data[r_path]["files_count"]
+                self.folders_data["All System Drives"]["files_count"] = total_system_files
+
+            if not self.cancel_flag:
+                self.status = "completed"
+        except Exception as e:
+            self.status = "failed"
+            self.error = str(e)
+        finally:
+            self.elapsed_time = time.time() - self.start_time
 ```
 
 ---
 
-### 3. Frontend Models Types (`frontend/src/types.ts`)
-Update the `ScanStatus` and `ScanSummary` interfaces status types:
+### 2. New Native Folder Selection & Payload API Routes (`backend/main.py`)
+- Expand `ScanRequest` schema:
+```python
+class ScanRequest(BaseModel):
+    path: str
+    skip_hidden: Optional[bool] = False
+    skip_packages: Optional[bool] = False
+    skip_code: Optional[bool] = False
+```
+- Add `/api/select-folder` POST endpoint to trigger the native folder selection dialog (using Tkinter).
+
+---
+
+### 3. Frontend App & breadcrumb go-back logic (`frontend/src/App.tsx`)
+- Add `organize` to the Home tabs list in `App.tsx`.
+- Modify `handleGoBack()` to jump to `"All System Drives"` root if navigating back from a drive root (e.g. `C:\`) when scanning `"All System Drives"`:
 ```typescript
-export interface ScanStatus {
-  status: 'idle' | 'scanning' | 'paused' | 'completed' | 'failed' | 'cancelled';
-  // ... rest of fields ...
+if (parts.length <= 1) {
+  if (rootPath === "All System Drives" && currentPath !== "All System Drives") {
+    handleNavigate("All System Drives");
+  }
+  return;
 }
 ```
+- Prepend virtual crumbs inside `Breadcrumbs.tsx` to display `"All System Drives"` as a clickable root folder when `rootPath === "All System Drives"`.
 
 ---
 
-### 4. App Coordination UI (`frontend/src/App.tsx`)
-We will rebuild the scanning screen, header, and home screen:
-- **Pause & Resume API Calls**: Implement `handlePauseScan()` and `handleResumeScan()` to invoke the new routes.
-- **Home Page Sub-Tabs**: Choose between **Scan Analyzer Hub** (using `DiskSelector`) and **Project Documentation** (renders `<DocsTab />`).
-- **Static animation freezes on Pause**: Remove the spinning CSS classes (`animate-spin-neon` and `animate-pulse`) when `progress.status === 'paused'` to visually freeze the progress indicators!
-- **Play/Pause controls on Full scan HUD**: Render a toggleable Pause/Play button with glowing borders.
-- **Mini floating controls card**: Floating monitoring status card also exposes mini Play/Pause indicators.
+### 4. Upgrade Selector Cards & Settings UI (`frontend/src/components/DiskSelector.tsx`)
+- Add a prominent grid card for **Full System Scan** representing `"ALL_SYSTEM_DRIVES"`.
+- Incorporate a **Scan Optimizations Center** containing 3 toggles:
+  - Skip Hidden Folders
+  - Skip Package Directories
+  - Skip Source Code Files
+- Incorporate a folder icon button next to custom path fields. When clicked, it hits `/api/select-folder` and pre-fills the input with the native picker's choice.
 
 ---
 
-### 5. Repository Configurations & Sync
-- Setup a secure `.gitignore` to skip `node_modules`, static builds, logs, and JSON scan reports.
-- Synchronize all codebase additions and documentation directly to the repository origin `https://github.com/thannasudhir9/DriveOrganiserAndAnalyzer-AG2.0.git` on the remote `main` branch.
+### 5. HomePage Organizer Support (`frontend/src/components/OrganizerTab.tsx`)
+- Allow mounting `OrganizerTab` on the Home screen.
+- Integrate the native directory browser selection button inside `OrganizerTab` next to its path input box to let users pick folders instantly using mouse clicks!
 
 ---
 
 ## 🧪 Verification Plan
 
 ### Automated Verification
-1. Verify that `npm run build` compiles completely with the new TypeScript fields and `DocsTab` import.
-2. Confirm the FastAPI backend starts and serves the modified scanner status JSON without errors.
-3. Validate repository push success by performing `git status` and verifying that the local branch is fully in sync with the remote origin `main` branch on GitHub.
+1. Run `npm run build` to verify clean front-end bundle compilation.
+2. Confirm uvicorn API loads and imports successfully.
 
 ### Manual Verification
-1. **Pause Scan Action**: Trigger a scan. Hit "Pause Scan". Verify the elapsed timer clock halts immediately, the spinning radar freezes visually, and status changes to `"paused"`.
-2. **Resume Scan Action**: Click "Resume Scan". Verify uvicorn continues scanning files, clock starts ticking up again, and radar begins spinning.
-3. **Docs Tab on Home**: Switch tabs on the selector screen to read the checklists before starting a scan.
-4. **Minimizing while Paused**: Minimize a paused scan. Verify the floating monitor badge in the bottom-right corner displays `Paused` in amber with a play icon to quickly resume it.
-5. **Git Push Integrity**: Verify on GitHub that all code updates (backend scanner algorithms, frontend App views, and docs viewer tab styling) are fully hosted on the repository `https://github.com/thannasudhir9/DriveOrganiserAndAnalyzer-AG2.0.git`.
+1. **Native Folder Selection**: Click the directory selector button. Verify a native Windows dialog opens on top of all windows, let's you pick any folder, and populates the text field.
+2. **System-Wide Scan**: Click "All System Drives (Full System Scan)". Verify scan initializes, indexes C:, D:, etc. concurrently, and displays a unified dashboard under the `All System Drives` breadcrumb root.
+3. **Skipping Folders**: Run a scan with "Skip Heavy Packages" active. Verify `node_modules` and `venv` are entirely skipped, reducing traversal time significantly.
+4. **Misc File Grouping**: Use the File Organizer on a directory containing loose `.ipynb` or `.torrent` files. Verify these items are safely grouped under the `/Misc` folder and no `organize_report_` files are moved.
+5. **HomePage Tab**: Navigate to the organizer tab from the home selector on startup and check folder sorting previews directly.

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Database, FolderTree, BarChart3, Search, Copy, RefreshCw, Layers, ShieldAlert, Timer, Sparkles, Download, CheckCircle2, FileText } from 'lucide-react';
-import { ScanSummary, DirectoryContent } from '../types';
+import { Database, FolderTree, BarChart3, Search, Copy, RefreshCw, Layers, ShieldAlert, Timer, Sparkles, Download, CheckCircle2, FileText, Pause, Play, FolderSync } from 'lucide-react';
+import { ScanSummary, DirectoryContent, ScanStatus } from '../types';
 import { formatBytes, API_BASE } from './DiskSelector';
 import { Breadcrumbs } from './Breadcrumbs';
 import { FileExplorer } from './FileExplorer';
@@ -9,6 +9,7 @@ import { SearchFilter } from './SearchFilter';
 import { DuplicatesTab } from './DuplicatesTab';
 import { FileTypeChart } from './FileTypeChart';
 import { OptimizerTab } from './OptimizerTab';
+import { OrganizerTab } from './OrganizerTab';
 import { DocsTab } from './DocsTab';
 import { FeaturesTab } from './FeaturesTab';
 
@@ -21,6 +22,13 @@ interface DashboardProps {
   rootPath: string;
   onScanNew: () => void;
   scanId: string;
+  progress: ScanStatus | null;
+  handlePauseScan: () => void;
+  handleResumeScan: () => void;
+  handleCancelScan: () => void;
+  theme: 'dark' | 'light';
+  activeTab?: 'explorer' | 'search' | 'duplicates' | 'analytics' | 'optimizer' | 'organizer' | 'docs' | 'features';
+  onTabChange?: (tab: 'explorer' | 'search' | 'duplicates' | 'analytics' | 'optimizer' | 'organizer' | 'docs' | 'features') => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -32,8 +40,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
   rootPath,
   onScanNew,
   scanId,
+  progress,
+  handlePauseScan,
+  handleResumeScan,
+  handleCancelScan,
+  activeTab: propActiveTab,
+  onTabChange,
 }) => {
-  const [activeTab, setActiveTab] = useState<'explorer' | 'search' | 'duplicates' | 'analytics' | 'optimizer' | 'docs' | 'features'>('explorer');
+  const [activeTab, setActiveTabState] = useState<'explorer' | 'search' | 'duplicates' | 'analytics' | 'optimizer' | 'organizer' | 'docs' | 'features'>(propActiveTab || 'explorer');
+
+  React.useEffect(() => {
+    if (propActiveTab) {
+      setActiveTabState(propActiveTab);
+    }
+  }, [propActiveTab]);
+
+  const setActiveTab = (tab: 'explorer' | 'search' | 'duplicates' | 'analytics' | 'optimizer' | 'organizer' | 'docs' | 'features') => {
+    setActiveTabState(tab);
+    if (onTabChange) {
+      onTabChange(tab);
+    }
+  };
   const [exporting, setExporting] = useState<boolean>(false);
   const [exportSuccess, setExportSuccess] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -86,6 +113,157 @@ export const Dashboard: React.FC<DashboardProps> = ({
   return (
     <div className="animate-fade-in" style={{ padding: '1.5rem', maxWidth: '1400px', margin: '0 auto' }}>
       
+      {/* Active Scanning HUD Banner */}
+      {progress && (progress.status === 'scanning' || progress.status === 'paused') && (() => {
+        // Calculate scan percentage
+        let scanPercent = 0;
+        if (progress.is_drive_root && progress.drive_used_size) {
+          scanPercent = Math.min(99, Math.round((progress.total_size / progress.drive_used_size) * 100));
+        } else {
+          scanPercent = Math.min(99, Math.round((1 - Math.exp(-progress.scanned_files / 1800)) * 100));
+        }
+
+        // Calculate scanning speeds
+        const bps = progress.elapsed_time > 0 ? progress.total_size / progress.elapsed_time : 0;
+        const fps = progress.elapsed_time > 0 ? (progress.scanned_files + progress.scanned_folders) / progress.elapsed_time : 0;
+
+        // ETA Estimations
+        const etaSec = (() => {
+          if (progress.elapsed_time < 2 || progress.status !== 'scanning') return null;
+          if (progress.is_drive_root && progress.drive_used_size && progress.total_size > 1024 * 1024) {
+            const fraction = progress.total_size / progress.drive_used_size;
+            if (fraction >= 1) return null;
+            return Math.max(1, Math.round((progress.elapsed_time / fraction) - progress.elapsed_time));
+          } else {
+            const totalItems = progress.scanned_files + progress.scanned_folders;
+            if (totalItems < 100) return null;
+            const rate = totalItems / progress.elapsed_time;
+            const remainingItems = Math.max(totalItems * 1.4, 800) - totalItems;
+            return Math.max(1, Math.round(remainingItems / rate));
+          }
+        })();
+
+        const formatClock = (seconds: number) => {
+          const mins = Math.floor(seconds / 60);
+          const secs = Math.floor(seconds % 60);
+          return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        };
+
+        return (
+          <div 
+            className="glass-panel animate-pulse-neon" 
+            style={{ 
+              padding: '1.25rem 1.5rem', 
+              marginBottom: '2rem', 
+              borderColor: progress.status === 'paused' ? 'rgba(245, 158, 11, 0.4)' : 'var(--hud-border)',
+              background: 'var(--hud-bg)',
+              boxShadow: progress.status === 'paused' 
+                ? '0 8px 32px rgba(0,0,0,0.25), 0 0 15px rgba(245, 158, 11, 0.1)' 
+                : '0 8px 32px rgba(0,0,0,0.25), 0 0 15px rgba(99, 102, 241, 0.15)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem',
+              borderRadius: '12px'
+            }}
+          >
+            {/* Header row */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <span className={progress.status === 'paused' ? '' : 'animate-spin-neon'} style={{ display: 'flex', color: progress.status === 'paused' ? 'var(--neon-amber)' : 'var(--neon-cyan)' }}>
+                  <RefreshCw size={18} />
+                </span>
+                <div>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    {progress.status === 'paused' ? 'Scanning Paused' : 'Active Indexing Ongoing...'}
+                    <span style={{ fontSize: '0.75rem', background: progress.status === 'paused' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(45, 212, 191, 0.15)', color: progress.status === 'paused' ? 'var(--neon-amber)' : 'var(--neon-cyan)', padding: '0.1rem 0.4rem', borderRadius: '10px', fontWeight: 700 }}>
+                      {scanPercent}%
+                    </span>
+                  </h4>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', maxWidth: '450px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                    Path: <span style={{ fontFamily: 'monospace' }}>{progress.current_folder}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Controls */}
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                {progress.status === 'scanning' ? (
+                  <button 
+                    className="btn-secondary" 
+                    onClick={handlePauseScan}
+                    style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem', borderColor: 'rgba(245, 158, 11, 0.3)' }}
+                  >
+                    <Pause size={12} style={{ color: 'var(--neon-amber)' }} /> Pause
+                  </button>
+                ) : (
+                  <button 
+                    className="btn-primary" 
+                    onClick={handleResumeScan}
+                    style={{ padding: '0.45rem 1rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(45, 212, 191, 0.1)', borderColor: 'var(--neon-cyan)' }}
+                  >
+                    <Play size={12} style={{ color: 'var(--neon-cyan)' }} /> Resume
+                  </button>
+                )}
+
+                <button 
+                  className="btn-danger" 
+                  onClick={handleCancelScan}
+                  style={{ padding: '0.45rem 1rem', fontSize: '0.8rem' }}
+                >
+                  Abort
+                </button>
+              </div>
+            </div>
+
+            {/* Progress Row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+              {/* Progress bar */}
+              <div style={{ flex: 1, minWidth: '200px' }}>
+                <div style={{ 
+                  height: '8px', 
+                  borderRadius: '4px', 
+                  background: 'var(--bar-bg)', 
+                  overflow: 'hidden',
+                  border: '1px solid var(--border-light)'
+                }}>
+                  <div style={{ 
+                     height: '100%', 
+                     width: `${scanPercent}%`,
+                     background: progress.status === 'paused'
+                       ? 'linear-gradient(90deg, #f59e0b, #d97706)'
+                       : 'linear-gradient(90deg, var(--neon-indigo), var(--neon-cyan))',
+                     boxShadow: progress.status === 'paused'
+                       ? '0 0 6px rgba(245, 158, 11, 0.4)'
+                       : '0 0 8px rgba(45, 212, 191, 0.3)',
+                     transition: 'width 0.4s ease-out'
+                  }} />
+                </div>
+              </div>
+
+              {/* Fast Stats */}
+              <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
+                <div>
+                  Clock: <strong style={{ fontFamily: 'monospace', color: 'var(--text-primary)' }}>{formatClock(progress.elapsed_time)}</strong>
+                </div>
+                <div>
+                  ETA: <strong style={{ color: 'var(--text-primary)' }}>{etaSec ? `~${etaSec}s` : 'Calculating...'}</strong>
+                </div>
+                <div>
+                  Objects: <strong style={{ color: 'var(--neon-indigo)' }}>{(progress.scanned_files + progress.scanned_folders).toLocaleString()}</strong>
+                </div>
+                <div>
+                  Discovered: <strong style={{ color: 'var(--neon-cyan)' }}>{formatBytes(progress.total_size)}</strong>
+                </div>
+                <div>
+                  Speed: <strong>{progress.status === 'paused' ? '0' : Math.round(fps).toLocaleString()}</strong> items/s
+                </div>
+              </div>
+            </div>
+
+          </div>
+        );
+      })()}
+
       {/* Top Banner Row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
@@ -162,10 +340,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <Database size={24} />
           </div>
           <div>
-            <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Space Scanned
             </span>
-            <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'white' }}>
+            <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
               {formatBytes(summary.total_size)}
             </span>
           </div>
@@ -177,10 +355,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <FolderTree size={24} />
           </div>
           <div>
-            <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Folders Traversed
             </span>
-            <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'white' }}>
+            <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
               {summary.scanned_folders.toLocaleString()}
             </span>
           </div>
@@ -192,10 +370,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <Layers size={24} />
           </div>
           <div>
-            <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Files Cataloged
             </span>
-            <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'white' }}>
+            <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
               {summary.scanned_files.toLocaleString()}
             </span>
           </div>
@@ -207,10 +385,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <Timer size={24} />
           </div>
           <div>
-            <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Time / Scan Speed
             </span>
-            <span style={{ fontSize: '1.3rem', fontWeight: 800, color: 'white' }}>
+            <span style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)' }}>
               {summary.elapsed_time}s &bull; <span style={{ fontSize: '0.95rem', color: 'var(--neon-cyan)' }}>{scanSpeed}/s</span>
             </span>
           </div>
@@ -248,7 +426,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           gap: '0.5rem', 
           marginBottom: '2rem',
           borderRadius: '12px',
-          background: 'rgba(10, 15, 30, 0.7)' 
+          background: 'var(--tabs-bg)' 
         }}
       >
         <button
@@ -258,9 +436,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
             flex: 1,
             justifyContent: 'center',
             background: activeTab === 'explorer' ? 'linear-gradient(135deg, var(--neon-indigo), var(--neon-purple))' : 'transparent',
-            borderColor: activeTab === 'explorer' ? 'transparent' : 'transparent',
+            borderColor: 'transparent',
             boxShadow: activeTab === 'explorer' ? '0 4px 12px rgba(99, 102, 241, 0.2)' : 'none',
-            color: 'white',
+            color: activeTab === 'explorer' ? 'white' : 'var(--text-secondary)',
             fontWeight: 600,
             borderRadius: '8px'
           }}
@@ -275,9 +453,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
             flex: 1,
             justifyContent: 'center',
             background: activeTab === 'search' ? 'linear-gradient(135deg, var(--neon-indigo), var(--neon-purple))' : 'transparent',
-            borderColor: activeTab === 'search' ? 'transparent' : 'transparent',
+            borderColor: 'transparent',
             boxShadow: activeTab === 'search' ? '0 4px 12px rgba(99, 102, 241, 0.2)' : 'none',
-            color: 'white',
+            color: activeTab === 'search' ? 'white' : 'var(--text-secondary)',
             fontWeight: 600,
             borderRadius: '8px'
           }}
@@ -292,9 +470,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
             flex: 1,
             justifyContent: 'center',
             background: activeTab === 'duplicates' ? 'linear-gradient(135deg, var(--neon-indigo), var(--neon-purple))' : 'transparent',
-            borderColor: activeTab === 'duplicates' ? 'transparent' : 'transparent',
+            borderColor: 'transparent',
             boxShadow: activeTab === 'duplicates' ? '0 4px 12px rgba(99, 102, 241, 0.2)' : 'none',
-            color: 'white',
+            color: activeTab === 'duplicates' ? 'white' : 'var(--text-secondary)',
             fontWeight: 600,
             borderRadius: '8px'
           }}
@@ -309,9 +487,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
             flex: 1,
             justifyContent: 'center',
             background: activeTab === 'analytics' ? 'linear-gradient(135deg, var(--neon-indigo), var(--neon-purple))' : 'transparent',
-            borderColor: activeTab === 'analytics' ? 'transparent' : 'transparent',
+            borderColor: 'transparent',
             boxShadow: activeTab === 'analytics' ? '0 4px 12px rgba(99, 102, 241, 0.2)' : 'none',
-            color: 'white',
+            color: activeTab === 'analytics' ? 'white' : 'var(--text-secondary)',
             fontWeight: 600,
             borderRadius: '8px'
           }}
@@ -326,14 +504,31 @@ export const Dashboard: React.FC<DashboardProps> = ({
             flex: 1,
             justifyContent: 'center',
             background: activeTab === 'optimizer' ? 'linear-gradient(135deg, var(--neon-indigo), var(--neon-purple))' : 'transparent',
-            borderColor: activeTab === 'optimizer' ? 'transparent' : 'transparent',
+            borderColor: 'transparent',
             boxShadow: activeTab === 'optimizer' ? '0 4px 12px rgba(99, 102, 241, 0.2)' : 'none',
-            color: 'white',
+            color: activeTab === 'optimizer' ? 'white' : 'var(--text-secondary)',
             fontWeight: 600,
             borderRadius: '8px'
           }}
         >
           <Sparkles size={16} /> Space Optimizer
+        </button>
+
+        <button
+          onClick={() => setActiveTab('organizer')}
+          className="btn-secondary"
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            background: activeTab === 'organizer' ? 'linear-gradient(135deg, var(--neon-indigo), var(--neon-purple))' : 'transparent',
+            borderColor: 'transparent',
+            boxShadow: activeTab === 'organizer' ? '0 4px 12px rgba(99, 102, 241, 0.2)' : 'none',
+            color: activeTab === 'organizer' ? 'white' : 'var(--text-secondary)',
+            fontWeight: 600,
+            borderRadius: '8px'
+          }}
+        >
+          <FolderSync size={16} /> File Organizer
         </button>
 
         <button
@@ -343,9 +538,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
             flex: 1,
             justifyContent: 'center',
             background: activeTab === 'docs' ? 'linear-gradient(135deg, var(--neon-indigo), var(--neon-purple))' : 'transparent',
-            borderColor: activeTab === 'docs' ? 'transparent' : 'transparent',
+            borderColor: 'transparent',
             boxShadow: activeTab === 'docs' ? '0 4px 12px rgba(99, 102, 241, 0.2)' : 'none',
-            color: 'white',
+            color: activeTab === 'docs' ? 'white' : 'var(--text-secondary)',
             fontWeight: 600,
             borderRadius: '8px'
           }}
@@ -360,9 +555,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
             flex: 1,
             justifyContent: 'center',
             background: activeTab === 'features' ? 'linear-gradient(135deg, var(--neon-indigo), var(--neon-purple))' : 'transparent',
-            borderColor: activeTab === 'features' ? 'transparent' : 'transparent',
+            borderColor: 'transparent',
             boxShadow: activeTab === 'features' ? '0 4px 12px rgba(99, 102, 241, 0.2)' : 'none',
-            color: 'white',
+            color: activeTab === 'features' ? 'white' : 'var(--text-secondary)',
             fontWeight: 600,
             borderRadius: '8px'
           }}
@@ -377,7 +572,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Tab 1: Directory Explorer */}
         {activeTab === 'explorer' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <Breadcrumbs currentPath={currentPath} onNavigate={onNavigate} />
+            <Breadcrumbs currentPath={currentPath} onNavigate={onNavigate} rootPath={rootPath} />
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '1.5rem' }} className="responsive-split-grid">
               {/* Left Explorer Table */}
@@ -481,6 +676,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {activeTab === 'optimizer' && (
           <OptimizerTab 
             summary={summary}
+            currentPath={currentPath}
+            onRefreshScan={() => onNavigate(currentPath)}
+          />
+        )}
+
+        {/* Tab 5.5: Dedicated File Organizer */}
+        {activeTab === 'organizer' && (
+          <OrganizerTab 
             currentPath={currentPath}
             onRefreshScan={() => onNavigate(currentPath)}
           />

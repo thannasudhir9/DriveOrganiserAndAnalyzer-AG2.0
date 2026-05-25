@@ -113,10 +113,10 @@ export const FeaturesTab: React.FC = () => {
       
       {/* Title Header */}
       <div style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto' }}>
-        <h2 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '0.5rem', color: 'white' }}>
+        <h2 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
           Explore Nova <span style={{ background: 'linear-gradient(90deg, var(--neon-cyan), var(--neon-indigo))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>App Features</span>
         </h2>
-        <p style={{ color: '#94a3b8', fontSize: '0.95rem' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>
           Nova combines high-performance multi-threaded Python disk traversal with beautiful glassmorphic visual diagnostics. Discover its capabilities below.
         </p>
       </div>
@@ -134,22 +134,22 @@ export const FeaturesTab: React.FC = () => {
                 display: 'flex', 
                 flexDirection: 'column', 
                 gap: '1rem',
-                border: '1px solid rgba(255, 255, 255, 0.03)',
-                background: 'rgba(255, 255, 255, 0.01)',
+                border: '1px solid var(--border-light)',
+                background: 'var(--card-inner-bg)',
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 position: 'relative',
                 overflow: 'hidden'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = feat.badgeColor;
-                e.currentTarget.style.boxShadow = `0 10px 30px rgba(0, 0, 0, 0.3), 0 0 12px ${feat.badgeColor}33`;
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
+                e.currentTarget.style.boxShadow = `0 10px 30px rgba(0, 0, 0, 0.08), 0 0 12px ${feat.badgeColor}33`;
+                e.currentTarget.style.background = 'var(--panel-bg-hover)';
                 e.currentTarget.style.transform = 'translateY(-2px)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.03)';
+                e.currentTarget.style.borderColor = 'var(--border-light)';
                 e.currentTarget.style.boxShadow = 'none';
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.01)';
+                e.currentTarget.style.background = 'var(--card-inner-bg)';
                 e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
@@ -158,8 +158,8 @@ export const FeaturesTab: React.FC = () => {
                 <div style={{ 
                   padding: '0.6rem', 
                   borderRadius: '10px', 
-                  background: 'rgba(255,255,255,0.03)', 
-                  border: '1px solid rgba(255,255,255,0.05)',
+                  background: 'var(--btn-secondary-bg)', 
+                  border: '1px solid var(--border-light)',
                   color: feat.badgeColor
                 }}>
                   <Icon size={22} />
@@ -179,14 +179,14 @@ export const FeaturesTab: React.FC = () => {
 
               {/* Title & Desc */}
               <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.35rem', color: 'white' }}>{feat.title}</h3>
-                <p style={{ fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.4 }}>{feat.desc}</p>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.35rem', color: 'var(--text-primary)' }}>{feat.title}</h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>{feat.desc}</p>
               </div>
 
               {/* Bullet points list */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', borderTop: '1px solid rgba(255,255,255,0.03)', paddingTop: '0.75rem', flex: 1 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', borderTop: '1px solid var(--border-light)', paddingTop: '0.75rem', flex: 1 }}>
                 {feat.details.map((det, dIdx) => (
-                  <div key={dIdx} style={{ display: 'flex', alignItems: 'start', gap: '0.4rem', fontSize: '0.75rem', color: '#cbd5e1' }}>
+                  <div key={dIdx} style={{ display: 'flex', alignItems: 'start', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                     <div style={{ color: feat.badgeColor, fontSize: '0.9rem', lineHeight: 1, marginTop: '-0.1rem' }}>&bull;</div>
                     <span>{det}</span>
                   </div>

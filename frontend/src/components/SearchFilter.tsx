@@ -67,17 +67,17 @@ export const SearchFilter: React.FC<SearchFilterProps> = ({ topFiles, topFolders
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{
                 width: '100%',
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                background: 'var(--input-bg)',
+                border: '1px solid var(--input-border)',
                 borderRadius: '8px',
                 padding: '0.65rem 1rem 0.65rem 2.5rem',
-                color: 'white',
+                color: 'var(--input-color)',
                 fontSize: '0.9rem',
                 outline: 'none',
                 transition: 'var(--transition-smooth)'
               }}
               onFocus={(e) => e.target.style.borderColor = 'var(--neon-indigo)'}
-              onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--input-border)'}
             />
             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
           </div>
@@ -90,10 +90,10 @@ export const SearchFilter: React.FC<SearchFilterProps> = ({ topFiles, topFolders
               style={{
                 width: '100%',
                 background: 'var(--panel-bg)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
+                border: '1px solid var(--input-border)',
                 borderRadius: '8px',
                 padding: '0.65rem 1rem',
-                color: 'white',
+                color: 'var(--input-color)',
                 outline: 'none',
                 cursor: 'pointer'
               }}
@@ -106,7 +106,7 @@ export const SearchFilter: React.FC<SearchFilterProps> = ({ topFiles, topFolders
 
           {/* Size Selectors */}
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.85rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               <Filter size={14} /> Min Size:
             </span>
             {[0, 10, 100, 1024].map((size) => {
@@ -121,9 +121,9 @@ export const SearchFilter: React.FC<SearchFilterProps> = ({ topFiles, topFolders
                     padding: '0.35rem 0.75rem',
                     fontSize: '0.8rem',
                     borderRadius: '20px',
-                    background: isSelected ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255,255,255,0.03)',
-                    borderColor: isSelected ? 'var(--neon-indigo)' : 'rgba(255,255,255,0.05)',
-                    color: isSelected ? 'white' : '#cbd5e1'
+                    background: isSelected ? 'rgba(99, 102, 241, 0.2)' : 'var(--btn-secondary-bg)',
+                    borderColor: isSelected ? 'var(--neon-indigo)' : 'var(--btn-secondary-border)',
+                    color: isSelected ? 'white' : 'var(--text-secondary)'
                   }}
                 >
                   {label}
@@ -134,7 +134,7 @@ export const SearchFilter: React.FC<SearchFilterProps> = ({ topFiles, topFolders
 
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: '#64748b' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
           <Database size={14} />
           <span>Showing {filteredResults.length} matches from top drive consumers list</span>
         </div>
@@ -169,7 +169,7 @@ export const SearchFilter: React.FC<SearchFilterProps> = ({ topFiles, topFolders
                         {item.is_dir ? <Folder size={16} /> : <File size={16} />}
                       </div>
                       <div style={{ overflow: 'hidden' }}>
-                        <div style={{ fontWeight: 600, color: 'white' }}>{item.name}</div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{item.name}</div>
                         <code style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', wordBreak: 'break-all' }}>
                           {item.path}
                         </code>

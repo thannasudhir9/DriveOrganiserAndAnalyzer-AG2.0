@@ -23,8 +23,27 @@ def get_category(ext):
     return "Others"
 
 class DiskScanner:
-    def __init__(self, root_path):
-        self.root_path = os.path.abspath(root_path)
+    def __init__(self, root_path, skip_hidden=False, skip_packages=False, skip_code=False):
+        # Handle all system drives traversal
+        if root_path == "ALL_SYSTEM_DRIVES":
+            import psutil
+            self.root_paths = []
+            for partition in psutil.disk_partitions():
+                if 'cdrom' not in partition.opts and partition.fstype != '':
+                    try:
+                        # Try to read drive root to verify it's active and has no access crash
+                        os.scandir(partition.mountpoint)
+                        self.root_paths.append(partition.mountpoint)
+                    except:
+                        continue
+            self.root_path = "All System Drives"
+        else:
+            self.root_paths = [os.path.abspath(root_path)]
+            self.root_path = os.path.abspath(root_path)
+
+        self.skip_hidden = skip_hidden
+        self.skip_packages = skip_packages
+        self.skip_code = skip_code
         self.status = "idle"  # idle, scanning, completed, failed, cancelled
         self.error = None
         
@@ -125,15 +144,18 @@ class DiskScanner:
         import shutil
         drive_total = 0
         drive_used = 0
-        try:
-            usage = shutil.disk_usage(self.root_path)
-            drive_total = usage.total
-            drive_used = usage.used
-        except OSError:
-            pass
-            
-        drive, path_part = os.path.splitdrive(self.root_path)
-        is_drive_root = path_part in ('\\', '/', '')
+        for r_path in self.root_paths:
+            try:
+                usage = shutil.disk_usage(r_path)
+                drive_total += usage.total
+                drive_used += usage.used
+            except OSError:
+                pass
+                
+        is_drive_root = len(self.root_paths) > 1
+        if not is_drive_root and len(self.root_paths) == 1:
+            drive, path_part = os.path.splitdrive(self.root_paths[0])
+            is_drive_root = path_part in ('\\', '/', '')
             
         return {
             "status": self.status,
@@ -273,7 +295,32 @@ class DiskScanner:
 
     def _scan_thread(self):
         try:
-            self._scan_folder(self.root_path)
+            # If scanning all drives, initialize the virtual root in folders_data
+            if len(self.root_paths) > 1:
+                self.folders_data["All System Drives"] = {
+                    "name": "All System Drives",
+                    "size": 0,
+                    "files_count": 0,
+                    "subfolders": [r for r in self.root_paths],
+                    "files": []
+                }
+                
+            total_system_size = 0
+            total_system_files = 0
+            for r_path in self.root_paths:
+                if self.cancel_flag:
+                    break
+                sub_size = self._scan_folder(r_path)
+                total_system_size += sub_size
+
+            if len(self.root_paths) > 1:
+                self.folders_data["All System Drives"]["size"] = total_system_size
+                for r_path in self.root_paths:
+                    if r_path in self.folders_data:
+                        total_system_files += self.folders_data[r_path]["files_count"]
+                self.folders_data["All System Drives"]["files_count"] = total_system_files
+                self.total_size = total_system_size
+
             if not self.cancel_flag:
                 self.status = "completed"
         except Exception as e:
@@ -315,9 +362,16 @@ class DiskScanner:
                         
                     if entry.is_file():
                         try:
+                            file_name = entry.name
+                            _, ext = os.path.splitext(file_name)
+                            ext_lower = ext.lower()
+                            
+                            # Skip source files if skip_code option is enabled
+                            if self.skip_code and get_category(ext_lower) == "Code":
+                                continue
+                                
                             file_size = entry.stat().st_size
                             file_path = entry.path
-                            file_name = entry.name
                             
                             folder_size += file_size
                             self.scanned_files += 1
@@ -330,9 +384,8 @@ class DiskScanner:
                             })
                             
                             # Extension stats
-                            _, ext = os.path.splitext(file_name)
-                            self.extension_stats[ext.lower()]["size"] += file_size
-                            self.extension_stats[ext.lower()]["count"] += 1
+                            self.extension_stats[ext_lower]["size"] += file_size
+                            self.extension_stats[ext_lower]["count"] += 1
                             
                             # Track top largest files
                             if len(self.top_files_heap) < 100:
@@ -348,7 +401,15 @@ class DiskScanner:
                             pass
                             
                     elif entry.is_dir():
-                        local_subfolders.append(entry.name)
+                        name = entry.name
+                        # Skip hidden directories starting with '.' (e.g. .git, .vscode)
+                        if self.skip_hidden and name.startswith("."):
+                            continue
+                        # Skip package directories
+                        if self.skip_packages and name in ("node_modules", "venv", ".venv", "env", "bower_components", ".git", ".idea", ".vscode"):
+                            continue
+                            
+                        local_subfolders.append(name)
                         
         except PermissionError:
             self.permission_errors.append(path)
@@ -395,9 +456,20 @@ def is_admin_privilege():
 
 def organize_directory(path, simulate=True):
     import shutil
+    from datetime import datetime
     abs_path = os.path.abspath(path)
     if not os.path.exists(abs_path) or not os.path.isdir(abs_path):
         return {"error": "Target directory does not exist."}
+
+    def format_bytes_py(size):
+        if size < 1024:
+            return f"{size} B"
+        elif size < 1024 * 1024:
+            return f"{size / 1024:.2f} KB"
+        elif size < 1024 * 1024 * 1024:
+            return f"{size / (1024 * 1024):.2f} MB"
+        else:
+            return f"{size / (1024 * 1024 * 1024):.2f} GB"
 
     # Groupings mapping for organization
     GROUPS = {
@@ -415,6 +487,10 @@ def organize_directory(path, simulate=True):
             for entry in entries:
                 if entry.is_file():
                     name = entry.name
+                    # Skip organization's own report files
+                    if name.startswith("organize_report_"):
+                        continue
+                        
                     _, ext = os.path.splitext(name)
                     ext = ext.lower()
                     
@@ -424,14 +500,17 @@ def organize_directory(path, simulate=True):
                             target_folder = folder
                             break
                             
-                    if target_folder:
-                        file_size = entry.stat().st_size
-                        moves.append({
-                            "name": name,
-                            "size": file_size,
-                            "target_folder": target_folder,
-                            "path": entry.path
-                        })
+                    # Group other uncategorized extensions (.ipynb, .torrent, etc.) under "Misc"
+                    if not target_folder:
+                        target_folder = "Misc"
+                        
+                    file_size = entry.stat().st_size
+                    moves.append({
+                        "name": name,
+                        "size": file_size,
+                        "target_folder": target_folder,
+                        "path": entry.path
+                    })
     except PermissionError:
         return {"error": "Permission denied reading this folder."}
     except Exception as e:
@@ -442,7 +521,13 @@ def organize_directory(path, simulate=True):
 
     # Perform actual moves safely
     moved_count = 0
+    total_moved_size = 0
     errors = []
+    actions_log = []
+    
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    timestamp_filename = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
     for m in moves:
         src = m["path"]
         dest_dir = os.path.join(abs_path, m["target_folder"])
@@ -453,13 +538,52 @@ def organize_directory(path, simulate=True):
                 os.makedirs(dest_dir, exist_ok=True)
             shutil.move(src, dest)
             moved_count += 1
+            total_moved_size += m["size"]
+            actions_log.append(f"MOVED: {m['name']} -> /{m['target_folder']} ({format_bytes_py(m['size'])})")
         except Exception as e:
             errors.append({"file": m["name"], "error": str(e)})
+            actions_log.append(f"ERROR: {m['name']} -> /{m['target_folder']} | Reason: {str(e)}")
+
+    # Create the organization report file inside the directory
+    report_filename = f"organize_report_{timestamp_filename}.txt"
+    report_path = os.path.join(abs_path, report_filename)
+    
+    report_lines = [
+        "==========================================================================",
+        "🚀 NOVA SECURE FILE ORGANIZER - REARRANGEMENT LOG",
+        "==========================================================================",
+        f"Timestamp:      {timestamp}",
+        f"Directory:      {abs_path}",
+        f"Files Moved:    {moved_count} of {len(moves)} loose files",
+        f"Total Size:     {format_bytes_py(total_moved_size)} successfully categorized",
+        f"Errors Raised:  {len(errors)} failed operations",
+        "--------------------------------------------------------------------------",
+        "TRACK LOG DETAILS:",
+        "--------------------------------------------------------------------------"
+    ]
+    report_lines.extend(actions_log)
+    if errors:
+        report_lines.extend([
+            "--------------------------------------------------------------------------",
+            "ERRORS ENCOUNTERED:",
+            "--------------------------------------------------------------------------"
+        ])
+        for err in errors:
+            report_lines.append(f"File: {err['file']} | Error: {err['error']}")
+            
+    report_content = "\n".join(report_lines)
+    try:
+        with open(report_path, "w", encoding="utf-8") as f:
+            f.write(report_content)
+    except Exception as e:
+        actions_log.append(f"REPORT GENERATION ERROR: {str(e)}")
 
     return {
         "simulated": False,
         "moved_count": moved_count,
         "moves": moves[:moved_count],  # return successfully moved files
-        "errors": errors
+        "errors": errors,
+        "report_path": report_path,
+        "report_content": report_content
     }
 

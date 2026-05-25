@@ -34,7 +34,7 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({ duplicates }) => {
         className="glass-panel" 
         style={{ 
           padding: '1.5rem', 
-          background: 'linear-gradient(135deg, rgba(13, 20, 38, 0.65), rgba(99, 102, 241, 0.05))',
+          background: 'linear-gradient(135deg, var(--panel-bg), rgba(99, 102, 241, 0.05))',
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center',
@@ -44,12 +44,12 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({ duplicates }) => {
       >
         <div>
           <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Duplicate File Finder</h3>
-          <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '0.2rem' }}>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
             Lists files with identical names and byte sizes found in different directories.
           </p>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <span style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>
             Total Redundant Space
           </span>
           <span style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--neon-rose)' }}>
@@ -66,24 +66,24 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({ duplicates }) => {
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{
             width: '100%',
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'var(--input-bg)',
+            border: '1px solid var(--input-border)',
             borderRadius: '8px',
             padding: '0.65rem 1rem 0.65rem 2.5rem',
-            color: 'white',
+            color: 'var(--input-color)',
             fontSize: '0.9rem',
             outline: 'none',
             transition: 'var(--transition-smooth)'
           }}
           onFocus={(e) => e.target.style.borderColor = 'var(--neon-indigo)'}
-          onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
+          onBlur={(e) => e.target.style.borderColor = 'var(--input-border)'}
         />
         <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
       </div>
 
       {filteredDuplicates.length === 0 ? (
-        <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
-          <AlertCircle size={32} style={{ color: '#475569', marginBottom: '0.75rem' }} />
+        <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+          <AlertCircle size={32} style={{ color: 'var(--text-muted)', marginBottom: '0.75rem' }} />
           <p>No duplicate file candidates found.</p>
         </div>
       ) : (
@@ -114,10 +114,10 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({ duplicates }) => {
                       <Copy size={18} />
                     </div>
                     <div style={{ overflow: 'hidden' }}>
-                      <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'white', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                      <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                         {dupSet.name}
                       </h4>
-                      <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                         Size: {formatBytes(dupSet.size)} &bull; {dupSet.paths.length} copies
                       </p>
                     </div>
@@ -137,7 +137,7 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({ duplicates }) => {
                     style={{ 
                       marginTop: '1rem', 
                       paddingTop: '0.85rem', 
-                      borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                      borderTop: '1px solid var(--border-light)',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '0.5rem'
@@ -153,14 +153,14 @@ export const DuplicatesTab: React.FC<DuplicatesTabProps> = ({ duplicates }) => {
                           display: 'flex', 
                           alignItems: 'start', 
                           gap: '0.5rem', 
-                          background: 'rgba(255,255,255,0.02)',
+                          background: 'var(--card-inner-bg)',
                           padding: '0.5rem 0.75rem',
                           borderRadius: '6px',
-                          border: '1px solid rgba(255, 255, 255, 0.03)'
+                          border: '1px solid var(--card-inner-border)'
                         }}
                       >
-                        <MapPin size={14} style={{ color: '#64748b', marginTop: '0.2rem', flexShrink: 0 }} />
-                        <code style={{ fontSize: '0.8rem', color: '#cbd5e1', wordBreak: 'break-all' }}>{path}</code>
+                        <MapPin size={14} style={{ color: 'var(--text-muted)', marginTop: '0.2rem', flexShrink: 0 }} />
+                        <code style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', wordBreak: 'break-all' }}>{path}</code>
                       </div>
                     ))}
                   </div>
