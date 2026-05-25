@@ -1,0 +1,393 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: dark;
+  color: #f1f5f9;
+  background-color: #060913;
+
+  /* Theme color palette */
+  --bg-main: #060913;
+  --bg-gradient: radial-gradient(circle at 50% 0%, #111a36 0%, #060913 100%);
+  --panel-bg: rgba(13, 20, 38, 0.55);
+  --panel-bg-hover: rgba(17, 28, 54, 0.7);
+  --border-glow: rgba(99, 102, 241, 0.15);
+  --border-light: rgba(255, 255, 255, 0.05);
+  
+  /* Accent neon colors */
+  --neon-blue: #3b82f6;
+  --neon-indigo: #6366f1;
+  --neon-purple: #8b5cf6;
+  --neon-teal: #14b8a6;
+  --neon-cyan: #2dd4bf;
+  --neon-rose: #f43f5e;
+  --neon-amber: #f59e0b;
+
+  /* Utility values */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--bg-gradient);
+  overflow-x: hidden;
+  color: #e2e8f0;
+}
+
+/* Custom Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(13, 20, 38, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.4);
+}
+
+/* Base Glassmorphic Layout Utilities */
+.glass-panel {
+  background: var(--panel-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  transition: var(--transition-smooth);
+}
+
+.glass-panel-glow {
+  border-color: rgba(99, 102, 241, 0.25);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), 0 0 15px rgba(99, 102, 241, 0.15);
+}
+
+.glass-panel:hover {
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  transition: var(--transition-smooth);
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(99, 102, 241, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Animations */
+@keyframes pulse-neon {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(99, 102, 241, 0.4), 0 0 15px rgba(99, 102, 241, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.8), 0 0 30px rgba(99, 102, 241, 0.4);
+  }
+}
+
+@keyframes spin-neon {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes scan-line {
+  0% { top: 0%; }
+  50% { top: 100%; }
+  100% { top: 0%; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-pulse-neon {
+  animation: pulse-neon 2s infinite;
+}
+
+.animate-spin-neon {
+  animation: spin-neon 1.5s linear infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Dynamic Buttons */
+.btn-primary {
+  background: linear-gradient(135deg, var(--neon-indigo), var(--neon-purple));
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: var(--transition-smooth);
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5), 0 0 10px rgba(99, 102, 241, 0.2);
+  background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  color: #f1f5f9;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: var(--transition-smooth);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: white;
+}
+
+.btn-danger {
+  background: rgba(244, 63, 94, 0.1);
+  color: var(--neon-rose);
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: var(--transition-smooth);
+}
+
+.btn-danger:hover {
+  background: rgba(244, 63, 94, 0.2);
+  border-color: var(--neon-rose);
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.2);
+}
+
+/* Typography styles */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: white;
+}
+
+code, pre {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* App Header Glow */
+.app-header {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.app-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--neon-indigo), var(--neon-purple), transparent);
+}
+
+/* Grid & Dashboard layout */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Treemap styling rules */
+.treemap-node {
+  stroke: rgba(0, 0, 0, 0.3);
+  stroke-width: 1px;
+  transition: var(--transition-smooth);
+  cursor: pointer;
+}
+
+.treemap-node:hover {
+  filter: brightness(1.2);
+  stroke: rgba(255, 255, 255, 0.7);
+  stroke-width: 1.5px;
+}
+
+.treemap-text {
+  fill: white;
+  font-weight: 600;
+  pointer-events: none;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+/* Table explorer rules */
+.explorer-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.explorer-table th {
+  padding: 0.85rem 1rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.explorer-table td {
+  padding: 0.85rem 1rem;
+  font-size: 0.9rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+  transition: var(--transition-smooth);
+}
+
+.explorer-table tr:hover td {
+  background: rgba(99, 102, 241, 0.03);
+}
+
+.explorer-progress-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+  position: relative;
+}
+
+.explorer-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--neon-indigo), var(--neon-cyan));
+}
+
+/* ==========================================================================
+   Frosted Glassmorphic Light Theme Styling
+   ========================================================================== */
+:root.light {
+  color-scheme: light;
+  color: #1e293b;
+  background-color: #f1f5f9;
+
+  /* Overwrite variables for light mode */
+  --bg-main: #f1f5f9;
+  --bg-gradient: radial-gradient(circle at 50% 0%, #ffffff 0%, #cbd5e1 100%);
+  --panel-bg: rgba(241, 245, 249, 0.7);
+  --panel-bg-hover: rgba(255, 255, 255, 0.9);
+  --border-glow: rgba(99, 102, 241, 0.15);
+  --border-light: rgba(0, 0, 0, 0.08);
+
+  /* Light accents adjustment */
+  --neon-indigo: #4f46e5;
+  --neon-purple: #7c3aed;
+  --neon-teal: #0d9488;
+}
+
+:root.light body {
+  background: var(--bg-gradient);
+  color: #334155;
+}
+
+:root.light h1, 
+:root.light h2, 
+:root.light h3, 
+:root.light h4, 
+:root.light h5, 
+:root.light h6 {
+  color: #0f172a;
+}
+
+:root.light .glass-panel {
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.06);
+}
+
+:root.light .glass-card {
+  background: rgba(0, 0, 0, 0.015);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+:root.light .glass-card:hover {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(99, 102, 241, 0.25);
+}
+
+:root.light .explorer-table th {
+  color: #475569;
+}
+
+:root.light .explorer-table td {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  color: #1e293b;
+}
+
+:root.light .explorer-table tr:hover td {
+  background: rgba(99, 102, 241, 0.04);
+}
+
+:root.light input, 
+:root.light select {
+  background: rgba(0, 0, 0, 0.02) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  color: #0f172a !important;
+}
+
+:root.light input:focus, 
+:root.light select:focus {
+  border-color: var(--neon-indigo) !important;
+}
+
+:root.light .explorer-progress-bar {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+:root.light .treemap-text {
+  fill: #0f172a;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9);
+}
+
+:root.light .treemap-node {
+  stroke: rgba(255, 255, 255, 0.25);
+}
+
