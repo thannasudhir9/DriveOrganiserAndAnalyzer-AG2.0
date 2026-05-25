@@ -77,6 +77,46 @@ D:\AntigravityCode\OS-Organiser And Analyzer\
 
 ---
 
+## 🖼️ Application Visual Showcase
+
+Here is a visual tour of **Nova v2.0** illustrating its glassmorphic interface, dark/light themes, and core feature panels.
+
+### 1. Unified Startup Hub (Space Dark vs. Frosted Light)
+Choose custom folders, scan all local drives, and toggle skip optimizations (Hidden Folders, Dependency Packages, or Source Code) with real-time Admin Mode detection.
+
+| Space Dark Startup | Frosted Glass Light Startup |
+| :---: | :---: |
+| ![Dark Mode Startup](./screenshots/1_dark_startup_selector.png) | ![Light Mode Startup](./screenshots/2_light_startup_selector.png) |
+
+---
+
+### 2. Live Background Scanning & Squarified Treemap
+Scan drives in the background while browsing directories. Larger blocks in the SVG Treemap represent larger space consumers, categorized by extension categories.
+
+| Background Scanning Progress HUD | Interactive SVG Treemap & Explorer |
+| :---: | :---: |
+| ![Scanning Progress HUD](./screenshots/5_dark_live_scanning_dashboard.png) | ![SVG Treemap Results](./screenshots/6_dark_results_explorer.png) |
+
+---
+
+### 3. Secure File Organizer Sorter Tab
+Prefill paths or use the native folder selector. Review sorting dry-run categorization previews before rearranging, then approve to execute and log tracked operations.
+
+| Sorter Tab Layout & Dry-Run Preview |
+| :---: |
+| ![Secure Sorter Tab](./screenshots/11_dark_file_organizer_tab.png) |
+
+---
+
+### 4. Smart Space Optimizer Action Center & Duplicate Finder
+Examine redundant identical file copies with size wasted meters, log cache files, and developer dependency folders.
+
+| Redundant Duplicate Finder | Space Optimizer Dashboard |
+| :---: | :---: |
+| ![Duplicate Finder](./screenshots/8_dark_duplicate_finder.png) | ![Space Optimizer Recommendations](./screenshots/10_dark_space_optimizer.png) |
+
+---
+
 ## 🚀 Getting Started
 
 ### Option A: Standard Single-Click Mode (Recommended)
