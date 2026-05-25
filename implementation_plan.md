@@ -1,7 +1,7 @@
 # Implementation Plan - Native Folder Selection, System-Wide Drive Scans, In-App HomePage Organizer, Misc File Grouping, and Scan Skip Filters
 
-> **Last Updated**: May 25, 2026, 6:15 PM (Local Time: 2026-05-25T18:15:00+02:00)
-> **Status**: Under Review (Requesting User Feedback)
+> **Last Updated**: May 25, 2026, 6:46 PM (Local Time: 2026-05-25T18:46:00+02:00)
+> **Status**: Approved & Fully Executed
 
 We will introduce five major feature expansions:
 1. **Native Folder Selection Dialog**: Integrates a "Select Folder" button next to custom path inputs on both the Disk Selector screen and the File Organizer. Clicking it opens a native Windows folder picker dialogue (`tkinter.filedialog.askdirectory`) in a non-blocking background thread and pre-fills the path field.

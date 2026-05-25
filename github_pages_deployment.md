@@ -1,6 +1,6 @@
 # 🌐 Nova Disk Space Analyzer - GitHub Pages Deployment Manual
 
-> **Last Updated**: May 25, 2026, 6:35 PM (Local Time: 2026-05-25T18:35:00+02:00)
+> **Last Updated**: May 25, 2026, 6:46 PM (Local Time: 2026-05-25T18:46:00+02:00)
 > **Branch**: `main` / `gh-pages` (synchronized with remote GitHub repository)
 > **Manual Type**: Deployment & Remote Administration
 
@@ -106,3 +106,27 @@ Once the website is live, follow these steps to manage your disk space:
    https://thannasudhir9.github.io/DriveOrganiserAndAnalyzer-AG2.0/
    ```
    *Nova's glassmorphic interface will load immediately, detect the active local node, and let you scan drives, view treemaps, find duplicates, and organize folders globally!*
+
+---
+
+## 🔒 5. Browser Mixed-Content and Asset Resolutions
+
+Deploying an HTTPS-based static client that communicates with an insecure local HTTP endpoint (`http://localhost:8000`) introduces technical barriers that Nova solves dynamically:
+
+### A. Favicon 404 Resolution
+- **Issue**: Vite's default path resolver doesn't rewrite absolute favicon definitions (`href="/favicon.svg"`) under subfolder hosted environments like `/DriveOrganiserAndAnalyzer-AG2.0/`, triggering a 404 image load warning.
+- **Resolution**: Updated `index.html` to reference relative `./favicon.svg`, aligning asset resolution perfectly with our relative base bundler paths.
+
+### B. Dynamic Host API base Resolution
+- In [DiskSelector.tsx](file:///d:/AntigravityCode/OS-Organiser%20And%20Analyzer/frontend/src/components/DiskSelector.tsx), the `API_BASE` is resolved dynamically:
+  ```typescript
+  const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? ''
+    : 'http://localhost:8000';
+  ```
+  This ensures that when run locally, the browser uses standard relative routes. When hosted remotely, it targets port `8000` on the user's local loopback network.
+
+### C. Glassmorphic Connection Diagnostics Card & Scan Manually Fallback
+- If the browser blocks the backend request, the drives loading panel is replaced with a **GitHub Pages Security Block Card**.
+- This guides the user through relaxing Mixed Content restrictions for this site via browser **Site Settings** (changing *Insecure Content* to *Allow*).
+- An alternate **Scan Manually &rarr;** button is exposed to let users access folder scanning forms directly without requiring immediate server handshake checks.

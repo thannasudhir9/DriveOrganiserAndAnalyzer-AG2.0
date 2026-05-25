@@ -475,3 +475,62 @@ screenshot button , how do I understand it is working or not, as I dont see anyt
 - **Hover Details Overlay Contrast**: Corrected hovered node card descriptions in the Treemap view which had hardcoded dark backgrounds but no text colors, ensuring they display in crisp high-contrast white in both dark and light modes.
 - **Header Button Visual Contrast**: Modified the circular Home, Camera, and Theme header buttons in `App.tsx` to use theme-aware custom properties (`var(--btn-secondary-bg)`, `var(--btn-secondary-border)`, `color: 'var(--text-primary)'`), ensuring perfect premium definition and visibility in Light Theme.
 - **Clean Compilation & ASGI Relaunch**: Verified that all updates compile flawlessly in 480ms via `npm run build` and restarted the FastAPI ASGI local web server backend on port 8000.
+
+---
+
+## 📅 Prompt 16: GitHub Pages Deployment Support & Architecture Manual
+
+### ⏰ Timestamp: `2026-05-25T16:30:00+02:00`
+
+### 💬 Input Command:
+```
+Add some of the app screenshots in readme file
+Also can I make it as a website to host on github pages
+create a new document with explanation and steps
+ok proceed and lets deploy it to github pages as you said
+```
+
+### 🎯 Key Outcomes:
+- **Relative Asset Bundling**: Configured `base: './'` in `vite.config.ts` to enforce relative asset paths, making front-end Javascript and CSS fully portable across remote subfolder repositories.
+- **Favicon Path Correction**: Shifted standard absolute `/favicon.svg` references to relative `./favicon.svg` in `index.html` to eliminate 404 image load errors on GitHub Pages.
+- **GitHub Pages Dev Dependencies**: Installed `gh-pages` package in `/frontend` and compiled deployment command scripts (`npm run build && gh-pages -d dist`) inside `package.json`.
+- **Hybrid Architecture Manual**: Authored `github_pages_deployment.md` explaining the hybrid remote client-to-local loopback server model.
+- **Static App Deployment**: Compiled React production bundles and deployed static assets directly to the remote repository's `gh-pages` branch.
+
+---
+
+## 📅 Prompt 17: Remote Web Console Mixed-Content Diagnostic & Bypass Override
+
+### ⏰ Timestamp: `2026-05-25T17:45:00+02:00`
+
+### 💬 Input Command:
+```
+https://thannasudhir9.github.io/DriveOrganiserAndAnalyzer-AG2.0/
+Access the website and try to find the issues
+```
+
+### 🎯 Key Outcomes:
+- **Remote Site Audit**: Audited the live GitHub Pages website via headlessly automated Chromium, verifying pristine mounting, glassmorphic layout assets, and smooth dual theme transitions.
+- **Mixed Content Diagnostic Block**: Built an elegant glassmorphic **Mixed-Content Connection Diagnostic Card** into the Disk Selector component that triggers when remote HTTPS clients are blocked by browsers from querying local HTTP loops (`localhost:8000`).
+- **Site Security Walkthrough**: Documented step-by-step instructions on the Diagnostic Card to help users allow "Insecure Content" via browser Site Settings.
+- **Scan Manually Override**: Mounted a **Scan Manually &rarr;** bypass key on the Diagnostic Card, enabling direct route transition to custom scan forms.
+- **Dynamic Port Selector**: Integrated adaptive client URL detection logic in components to switch between relative endpoints (local uvicorn root) and explicit loopback queries (`http://localhost:8000`) dynamically.
+
+---
+
+## 📅 Prompt 18: Documentation Synthesis, Timestamp Sync, and Final Remote Commit
+
+### ⏰ Timestamp: `2026-05-25T18:46:00+02:00`
+
+### 💬 Input Command:
+```
+ok add all this new information in the readme file
+update all docs with date and time 
+```
+
+### 🎯 Key Outcomes:
+- **Synthesized README Documentation**: Added comprehensive sections inside `README.md` and `github_pages_deployment.md` covering hybrid architecture mixed-content diagnostics, manual overrides, relative bundler pathing, and deployment update commands.
+- **Synchronized Manual Timestamps**: Updated the `Last Updated` header and checklist parameters of all manuals (`README.md`, `github_pages_deployment.md`, `future_scope.md`, `implementation_plan.md`, `task.md`, `walkthrough.md`) to the synchronized local time `May 25, 2026, 6:46 PM`.
+- **Workspace Artifacts Sync**: Fully synchronized all system-level md copies inside AppData with active workspace docs to keep records up to date.
+- **Codebase Repository Push**: Executed Git status tracking commits, staging all codebase and document updates, and cleanly pushed the synchronization to remote repository branch `main`.
+

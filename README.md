@@ -1,6 +1,6 @@
 # 🚀 Nova Disk Space Analyzer
 
-> **Last Updated**: May 25, 2026, 6:15 PM (Local Time: 2026-05-25T18:15:00+02:00)
+> **Last Updated**: May 25, 2026, 6:46 PM (Local Time: 2026-05-25T18:46:00+02:00)
 > **Branch**: `main` (synchronized with remote GitHub repository)
 
 Nova Disk Space Analyzer is a highly responsive, locally run web application that traverses your hard drives and projects, visualizing directory sizes using interactive **squarified SVG treemaps** (WinDirStat-style), listing candidate duplicate files, grouping file extensions, and exposing an advanced space-hog search tool.
@@ -135,3 +135,47 @@ Ideal for developers looking to modify files, styles, or add backend endpoints w
    ```
 2. The launcher spins the FastAPI backend on `http://localhost:8000` and the Vite React server on `http://localhost:5173`.
 3. Open your browser and navigate to `http://localhost:5173`. Press `Ctrl+C` in your terminal to shut down both processes.
+
+### Option C: Deployed Web Console (GitHub Pages Hybrid Mode)
+Access the live hosted frontend directly on the web, communicating securely with your locally running machine scanner controller:
+1. Spin up your local Python controller on port 8000:
+   ```powershell
+   python run.py
+   ```
+2. Navigate to your custom live hosted URL in any browser:
+   [https://thannasudhir9.github.io/DriveOrganiserAndAnalyzer-AG2.0/](https://thannasudhir9.github.io/DriveOrganiserAndAnalyzer-AG2.0/)
+
+---
+
+## 🌐 Hybrid Architecture & Mixed Content Resolutions
+
+GitHub Pages hosts static React clients securely via HTTPS. However, browsers restrict HTTPS web pages from sending asynchronous XHR/Fetch queries to insecure local addresses (`http://localhost:8000`) by default under **Mixed Content Security Rules**.
+
+To make this seamless and robust, Nova implements the following intelligent behaviors:
+
+### 1. Glassmorphic Connection Diagnostics Card
+If the deployed site is unable to establish an active connection to your local Python scanner, the UI dynamically replaces the drive selection panel with a sleek **GitHub Pages Security Block Diagnostic Card**. This instructs you to:
+- Click the site lock/settings icon in the browser's address bar.
+- Open **Site Settings**.
+- Locate **Insecure Content** and change it to **Allow**.
+- Reload the page. This securely bridges remote-to-local communication on standard Chromium and Gecko browsers.
+
+### 2. "Scan Manually" Bypass Mode
+For users who prefer not to run a local backend server or cannot change browser security settings, a glowing **Scan Manually &rarr;** button is provided on the Diagnostic Card. Clicking it bypasses the connection checks and directs you to custom path entry forms for manual diagnostics.
+
+### 3. Universal Relative Asset Pipelines
+- **Vite Configuration**: We configured `base: './'` in [vite.config.ts](file:///d:/AntigravityCode/OS-Organiser%20And%20Analyzer/frontend/vite.config.ts). This ensures all compiled React JS/CSS scripts, logo vectors, and charts resolve using relative file locations rather than absolute roots, making it fully portable under subfolder repositories.
+- **Relative Favicon Mapping**: Updated `index.html` to load `./favicon.svg` relatively, resolving a 404 asset loading error on GitHub Pages.
+- **Dynamic API Resolving**: In [DiskSelector.tsx](file:///d:/AntigravityCode/OS-Organiser%20And%20Analyzer/frontend/src/components/DiskSelector.tsx), the app automatically determines its hostname:
+  - If running on `localhost` or `127.0.0.1`, it utilizes relative endpoints (`""`) served directly by Uvicorn.
+  - If running on a remote host (e.g. GitHub Pages), it dynamically targets the local backend server at `http://localhost:8000`.
+
+### 4. Updating the Hosted Site (Deployment Pipeline)
+To build and push fresh updates to the hosted website, run:
+```powershell
+cd frontend
+npm run deploy
+```
+*This triggers TypeScript compilation, builds minified static assets in `/dist`, and utilizes the `gh-pages` npm package to commit and push the build directly to your remote repository's `gh-pages` branch.*
+
+

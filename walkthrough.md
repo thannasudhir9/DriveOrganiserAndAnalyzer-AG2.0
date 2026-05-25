@@ -1,7 +1,7 @@
 # Nova Disk Analyzer & Optimizer - Walkthrough
 
-> **Last Updated**: May 25, 2026, 6:15 PM (Local Time: 2026-05-25T18:15:00+02:00)
-> **Revision**: v3.2 (Added Return-to-Report Headers, Camera Shutter Flash Animation, Screenshot Error Alerts, and Light Theme Treemap Contrast Polish)
+> **Last Updated**: May 25, 2026, 6:46 PM (Local Time: 2026-05-25T18:46:00+02:00)
+> **Revision**: v3.3 (Added GitHub Pages Relative Asset pipelines, SEO brandings, and Browser mixed-content diagnostic blocks)
 
 We have successfully completed all the newly requested feature expansions, transforming **Nova Disk Analyzer** into a complete **Nova Space Optimizer & Secure File Organizer**!
 
